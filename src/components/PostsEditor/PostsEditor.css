@@ -12,6 +12,14 @@
   margin-bottom: 20px;
 }
 
+.posts-three-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
 .posts-button-box {
   display: flex;
   flex-direction: column;
@@ -78,7 +86,8 @@
   display: block;
 }
 
-.posts-help-card {
+.posts-help-card,
+.posts-type-block {
   width: 100%;
   margin-bottom: 20px;
   padding: 16px 18px;
@@ -88,13 +97,15 @@
   color: #4c6074;
 }
 
-.posts-help-card strong {
+.posts-help-card strong,
+.posts-type-block strong {
   display: block;
   margin-bottom: 8px;
   color: #2a4056;
 }
 
-.posts-help-card p {
+.posts-help-card p,
+.posts-type-block p {
   margin: 0;
   line-height: 1.8;
   font-size: 14px;
@@ -109,7 +120,7 @@
 }
 
 .posts-helper-text {
-  margin: 0 0 12px;
+  margin: 8px 0 0;
   color: #71839a;
   font-size: 13px;
   line-height: 1.8;
@@ -145,8 +156,15 @@
   color: #2b4258;
 }
 
+@media (max-width: 992px) {
+  .posts-three-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .posts-two-cols {
+  .posts-two-cols,
+  .posts-three-cols {
     grid-template-columns: 1fr;
   }
 
