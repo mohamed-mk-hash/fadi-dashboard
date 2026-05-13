@@ -10,6 +10,11 @@ const momentsUiText = {
     firestorePath: "siteContent / Moments",
     title: "العنوان",
     description: "الوصف",
+    currentWindow: "محتوى القسم الحالي",
+    chinese: "الصينية",
+    chineseWindowTitle: "نافذة إضافة محتوى اللحظات والإنجازات بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
     save: "حفظ التعديلات",
     saving: "جارٍ الحفظ...",
     loading: "جارٍ تحميل البيانات...",
@@ -25,6 +30,11 @@ const momentsUiText = {
     firestorePath: "siteContent / Moments",
     title: "Title",
     description: "Description",
+    currentWindow: "Current Section Content",
+    chinese: "Chinese",
+    chineseWindowTitle: "Chinese Moments & Milestones Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
     save: "Save Changes",
     saving: "Saving...",
     loading: "Loading data...",
@@ -35,18 +45,19 @@ const momentsUiText = {
   },
 };
 
+const emptyMomentsLanguageData = {
+  title: "",
+  description: "",
+};
+
 const defaultMomentsData = {
-  ar: {
-    title: "",
-    description: "",
-  },
-  en: {
-    title: "",
-    description: "",
-  },
+  ar: { ...emptyMomentsLanguageData },
+  en: { ...emptyMomentsLanguageData },
+  zh: { ...emptyMomentsLanguageData },
 };
 
 export default function MomentsMilestonesEditor({ lang = "ar", user }) {
+  const [momentsWindow, setMomentsWindow] = useState("default");
   const [formData, setFormData] = useState(defaultMomentsData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,7 +65,8 @@ export default function MomentsMilestonesEditor({ lang = "ar", user }) {
   const [error, setError] = useState("");
 
   const t = momentsUiText[lang];
-  const currentData = formData[lang];
+  const currentData = formData[lang] || emptyMomentsLanguageData;
+  const chineseData = formData.zh || emptyMomentsLanguageData;
 
   useEffect(() => {
     fetchMomentsData();
@@ -80,6 +92,10 @@ export default function MomentsMilestonesEditor({ lang = "ar", user }) {
             ...defaultMomentsData.en,
             ...(data.en || {}),
           },
+          zh: {
+            ...defaultMomentsData.zh,
+            ...(data.zh || {}),
+          },
         });
       } else {
         await setDoc(docRef, defaultMomentsData);
@@ -93,11 +109,11 @@ export default function MomentsMilestonesEditor({ lang = "ar", user }) {
     }
   };
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value, targetLang = lang) => {
     setFormData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyMomentsLanguageData),
         [field]: value,
       },
     }));
@@ -114,7 +130,9 @@ export default function MomentsMilestonesEditor({ lang = "ar", user }) {
       await setDoc(
         docRef,
         {
-          ...formData,
+          ar: formData.ar || defaultMomentsData.ar,
+          en: formData.en || defaultMomentsData.en,
+          zh: formData.zh || defaultMomentsData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -182,7 +200,33 @@ export default function MomentsMilestonesEditor({ lang = "ar", user }) {
           </p>
         </div>
 
-        <div className="editor-header__actions">
+        <div
+          className="editor-header__actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="language-switch">
+            <button
+              type="button"
+              className={momentsWindow === "default" ? "active" : ""}
+              onClick={() => setMomentsWindow("default")}
+            >
+              {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+            </button>
+
+            <button
+              type="button"
+              className={momentsWindow === "chinese" ? "active" : ""}
+              onClick={() => setMomentsWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+
           <button
             className="admin-btn admin-btn--primary"
             onClick={handleSave}
@@ -193,43 +237,78 @@ export default function MomentsMilestonesEditor({ lang = "ar", user }) {
         </div>
       </div>
 
-      <div
-        className="content-card glass-card"
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-        }}
-      >
-        <div className="content-card__header">
-          <h2>{t.formTitle}</h2>
-        </div>
-
+      {momentsWindow === "default" && (
         <div
-          className="fields-grid"
+          className="content-card glass-card"
           style={{
             width: "100%",
             maxWidth: "100%",
           }}
         >
-          <div className="field-box field-box--full">
-            <label>{t.title}</label>
-            <input
-              type="text"
-              value={currentData.title || ""}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
+          <div className="content-card__header">
+            <h2>{t.currentWindow}</h2>
           </div>
 
-          <div className="field-box field-box--full">
-            <label>{t.description}</label>
-            <textarea
-              rows={5}
-              value={currentData.description || ""}
-              onChange={(e) => handleChange("description", e.target.value)}
-            />
+          <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+            <div className="field-box field-box--full">
+              <label>{t.title}</label>
+              <input
+                type="text"
+                value={currentData.title || ""}
+                onChange={(e) => handleChange("title", e.target.value)}
+              />
+            </div>
+
+            <div className="field-box field-box--full">
+              <label>{t.description}</label>
+              <textarea
+                rows={5}
+                value={currentData.description || ""}
+                onChange={(e) => handleChange("description", e.target.value)}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {momentsWindow === "chinese" && (
+        <div
+          className="content-card glass-card"
+          style={{
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseWindowTitle}</h2>
+              <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+            </div>
+          </div>
+
+          <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+            <div className="field-box field-box--full">
+              <label>{t.title} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.title || ""}
+                onChange={(e) => handleChange("title", e.target.value, "zh")}
+              />
+            </div>
+
+            <div className="field-box field-box--full">
+              <label>{t.description} / Chinese</label>
+              <textarea
+                rows={5}
+                value={chineseData.description || ""}
+                onChange={(e) =>
+                  handleChange("description", e.target.value, "zh")
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

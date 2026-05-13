@@ -15,8 +15,6 @@ import AreasOfExpertiseEditor from "../../components/AreasOfExpertiseEditor/Area
 import ContactSectionEditor from "../../components/ContactSectionEditor/ContactSectionEditor";
 import DisciplineSectionEditor from "../../components/DisciplineSectionEditor/DisciplineSectionEditor";
 import FaqSectionEditor from "../../components/FaqSectionEditor/FaqSectionEditor";
-import IndustrialBrandsEditor from "../../components/IndustrialBrandsEditor/IndustrialBrandsEditor";
-import InvestmentsProjectsEditor from "../../components/InvestmentsProjectsEditor/InvestmentsProjectsEditor";
 import LatestWritingsEditor from "../../components/LatestWritingsEditor/LatestWritingsEditor";
 import MomentsMilestonesEditor from "../../components/MomentsMilestonesEditor/MomentsMilestonesEditor";
 import StorySectionEditor from "../../components/StorySectionEditor/StorySectionEditor";
@@ -40,6 +38,11 @@ const uiText = {
       "من هنا يمكنك تعديل محتوى الأقسام بالعربية والإنجليزية مباشرة من قاعدة البيانات.",
     arabic: "العربية",
     english: "الإنجليزية",
+    chinese: "الصينية",
+    defaultHeroWindow: "محتوى الهيرو الحالي",
+    chineseWindowTitle: "نافذة إضافة محتوى الهيرو بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
     save: "حفظ التعديلات",
     saving: "جارٍ الحفظ...",
     loading: "جارٍ تحميل البيانات...",
@@ -62,10 +65,8 @@ const uiText = {
     signedInAs: "مسجل الدخول باسم",
     expertiseSection: "قسم مجالات الخبرة",
     contactSection: "قسم التواصل",
-    disciplineSection: "قسم الانضباط",
+    disciplineSection: "قسم النساج",
     faqSection: "قسم الأسئلة الشائعة",
-    industrialSection: "قسم العلامات الصناعية",
-    investmentsSection: "قسم الاستثمارات والمشاريع",
     latestWritingsSection: "قسم آخر الكتابات",
     momentsSection: "قسم اللحظات والإنجازات",
     storySection: "قسم القصة",
@@ -88,6 +89,11 @@ const uiText = {
       "From here you can edit site sections in Arabic and English directly from the database.",
     arabic: "Arabic",
     english: "English",
+    chinese: "Chinese",
+    defaultHeroWindow: "Current Hero Content",
+    chineseWindowTitle: "Chinese Hero Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
     save: "Save Changes",
     saving: "Saving...",
     loading: "Loading data...",
@@ -112,8 +118,6 @@ const uiText = {
     contactSection: "Contact Section",
     disciplineSection: "Discipline Section",
     faqSection: "FAQ Section",
-    industrialSection: "Industrial Brands Section",
-    investmentsSection: "Investments & Projects Section",
     latestWritingsSection: "Latest Writings Section",
     momentsSection: "Moments & Milestones Section",
     storySection: "Story Section",
@@ -124,29 +128,25 @@ const uiText = {
   },
 };
 
+const emptyHeroLanguageData = {
+  badge: "",
+  title: "",
+  description: "",
+  primaryButtonText: "",
+  primaryButtonLink: "",
+  secondaryButtonText: "",
+  secondaryButtonLink: "",
+};
+
 const defaultHeroData = {
-  ar: {
-    badge: "",
-    title: "",
-    description: "",
-    primaryButtonText: "",
-    primaryButtonLink: "",
-    secondaryButtonText: "",
-    secondaryButtonLink: "",
-  },
-  en: {
-    badge: "",
-    title: "",
-    description: "",
-    primaryButtonText: "",
-    primaryButtonLink: "",
-    secondaryButtonText: "",
-    secondaryButtonLink: "",
-  },
+  ar: { ...emptyHeroLanguageData },
+  en: { ...emptyHeroLanguageData },
+  zh: { ...emptyHeroLanguageData },
 };
 
 export default function AdminDashboard() {
   const [lang, setLang] = useState("ar");
+  const [heroWindow, setHeroWindow] = useState("default");
   const [user, setUser] = useState(null);
   const [activeSection, setActiveSection] = useState("hero");
 
@@ -166,7 +166,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
 
   const t = uiText[lang];
-  const currentData = formData[lang];
+  const currentData = formData[lang] || emptyHeroLanguageData;
+  const chineseData = formData.zh || emptyHeroLanguageData;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -200,6 +201,10 @@ export default function AdminDashboard() {
           en: {
             ...defaultHeroData.en,
             ...(data.en || {}),
+          },
+          zh: {
+            ...defaultHeroData.zh,
+            ...(data.zh || {}),
           },
         });
       } else {
@@ -252,11 +257,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value, targetLang = lang) => {
     setFormData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyHeroLanguageData),
         [field]: value,
       },
     }));
@@ -273,7 +278,9 @@ export default function AdminDashboard() {
       await setDoc(
         docRef,
         {
-          ...formData,
+          ar: formData.ar || defaultHeroData.ar,
+          en: formData.en || defaultHeroData.en,
+          zh: formData.zh || defaultHeroData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -440,108 +447,92 @@ export default function AdminDashboard() {
             </button>
 
             <button
-            className={`sidebar-item ${activeSection === "expertise" ? "active" : ""}`}
-            onClick={() => setActiveSection("expertise")}
+              className={`sidebar-item ${activeSection === "expertise" ? "active" : ""}`}
+              onClick={() => setActiveSection("expertise")}
             >
-            <span className="sidebar-item__dot" />
-           <span className="sidebar-item__label">{t.expertiseSection}</span>
-           </button>
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.expertiseSection}</span>
+            </button>
 
-           <button
-  className={`sidebar-item ${activeSection === "contact" ? "active" : ""}`}
-  onClick={() => setActiveSection("contact")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.contactSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "contact" ? "active" : ""}`}
+              onClick={() => setActiveSection("contact")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.contactSection}</span>
+            </button>
 
-        <button
-       className={`sidebar-item ${activeSection === "discipline" ? "active" : ""}`}
-       onClick={() => setActiveSection("discipline")}
-      >
-     <span className="sidebar-item__dot" />
-    <span className="sidebar-item__label">{t.disciplineSection}</span>
-     </button>
+            <button
+              className={`sidebar-item ${activeSection === "discipline" ? "active" : ""}`}
+              onClick={() => setActiveSection("discipline")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.disciplineSection}</span>
+            </button>
 
-     <button
-  className={`sidebar-item ${activeSection === "faq" ? "active" : ""}`}
-  onClick={() => setActiveSection("faq")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.faqSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "faq" ? "active" : ""}`}
+              onClick={() => setActiveSection("faq")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.faqSection}</span>
+            </button>
 
-          <button
-  className={`sidebar-item ${activeSection === "industrial" ? "active" : ""}`}
-  onClick={() => setActiveSection("industrial")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.industrialSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "latestWritings" ? "active" : ""}`}
+              onClick={() => setActiveSection("latestWritings")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.latestWritingsSection}</span>
+            </button>
 
-        <button
-  className={`sidebar-item ${activeSection === "investments" ? "active" : ""}`}
-  onClick={() => setActiveSection("investments")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.investmentsSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "moments" ? "active" : ""}`}
+              onClick={() => setActiveSection("moments")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.momentsSection}</span>
+            </button>
 
-        <button
-  className={`sidebar-item ${activeSection === "latestWritings" ? "active" : ""}`}
-  onClick={() => setActiveSection("latestWritings")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.latestWritingsSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "story" ? "active" : ""}`}
+              onClick={() => setActiveSection("story")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.storySection}</span>
+            </button>
 
-        <button
-  className={`sidebar-item ${activeSection === "moments" ? "active" : ""}`}
-  onClick={() => setActiveSection("moments")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.momentsSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "successStories" ? "active" : ""}`}
+              onClick={() => setActiveSection("successStories")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.successStoriesSection}</span>
+            </button>
 
-        <button
-  className={`sidebar-item ${activeSection === "story" ? "active" : ""}`}
-  onClick={() => setActiveSection("story")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.storySection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "layout" ? "active" : ""}`}
+              onClick={() => setActiveSection("layout")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.layoutSection}</span>
+            </button>
 
-        <button
-  className={`sidebar-item ${activeSection === "successStories" ? "active" : ""}`}
-  onClick={() => setActiveSection("successStories")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.successStoriesSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "posts" ? "active" : ""}`}
+              onClick={() => setActiveSection("posts")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.postsSection}</span>
+            </button>
 
-        <button
-  className={`sidebar-item ${activeSection === "layout" ? "active" : ""}`}
-  onClick={() => setActiveSection("layout")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.layoutSection}</span>
-</button>
-
-        <button
-  className={`sidebar-item ${activeSection === "posts" ? "active" : ""}`}
-  onClick={() => setActiveSection("posts")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.postsSection}</span>
-</button>
-
-       <button
-  className={`sidebar-item ${activeSection === "experience" ? "active" : ""}`}
-  onClick={() => setActiveSection("experience")}
->
-  <span className="sidebar-item__dot" />
-  <span className="sidebar-item__label">{t.experienceSection}</span>
-</button>
+            <button
+              className={`sidebar-item ${activeSection === "experience" ? "active" : ""}`}
+              onClick={() => setActiveSection("experience")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">{t.experienceSection}</span>
+            </button>
           </div>
         </div>
 
@@ -586,7 +577,6 @@ export default function AdminDashboard() {
             maxWidth: "100%",
           }}
         >
-
           <div
             className="editor-layout page-animate"
             style={{
@@ -634,7 +624,33 @@ export default function AdminDashboard() {
                         </p>
                       </div>
 
-                      <div className="editor-header__actions">
+                      <div
+                        className="editor-header__actions"
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div className="language-switch">
+                          <button
+                            type="button"
+                            className={heroWindow === "default" ? "active" : ""}
+                            onClick={() => setHeroWindow("default")}
+                          >
+                            {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+                          </button>
+
+                          <button
+                            type="button"
+                            className={heroWindow === "chinese" ? "active" : ""}
+                            onClick={() => setHeroWindow("chinese")}
+                          >
+                            {t.chinese}
+                          </button>
+                        </div>
+
                         <button
                           className="admin-btn admin-btn--primary"
                           onClick={handleSave}
@@ -645,84 +661,176 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="content-card glass-card" style={{ width: "100%", maxWidth: "100%" }}>
-                      <div className="content-card__header">
-                        <h2>{t.formTitle}</h2>
+                    {heroWindow === "default" && (
+                      <div className="content-card glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+                        <div className="content-card__header">
+                          <h2>{t.defaultHeroWindow}</h2>
+                        </div>
+
+                        <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                          <div className="field-box">
+                            <label>{t.badge}</label>
+                            <input
+                              type="text"
+                              value={currentData.badge}
+                              onChange={(e) => handleChange("badge", e.target.value)}
+                            />
+                          </div>
+
+                          <div className="field-box field-box--full">
+                            <label>{t.title}</label>
+                            <input
+                              type="text"
+                              value={currentData.title}
+                              onChange={(e) => handleChange("title", e.target.value)}
+                            />
+                          </div>
+
+                          <div className="field-box field-box--full">
+                            <label>{t.description}</label>
+                            <textarea
+                              rows={5}
+                              value={currentData.description}
+                              onChange={(e) => handleChange("description", e.target.value)}
+                            />
+                          </div>
+
+                          <div className="field-box">
+                            <label>{t.primaryButtonText}</label>
+                            <input
+                              type="text"
+                              value={currentData.primaryButtonText}
+                              onChange={(e) =>
+                                handleChange("primaryButtonText", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="field-box">
+                            <label>{t.primaryButtonLink}</label>
+                            <input
+                              type="text"
+                              value={currentData.primaryButtonLink}
+                              onChange={(e) =>
+                                handleChange("primaryButtonLink", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="field-box">
+                            <label>{t.secondaryButtonText}</label>
+                            <input
+                              type="text"
+                              value={currentData.secondaryButtonText}
+                              onChange={(e) =>
+                                handleChange("secondaryButtonText", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="field-box">
+                            <label>{t.secondaryButtonLink}</label>
+                            <input
+                              type="text"
+                              value={currentData.secondaryButtonLink}
+                              onChange={(e) =>
+                                handleChange("secondaryButtonLink", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
+                    )}
 
-                      <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
-                        <div className="field-box">
-                          <label>{t.badge}</label>
-                          <input
-                            type="text"
-                            value={currentData.badge}
-                            onChange={(e) => handleChange("badge", e.target.value)}
-                          />
+                    {heroWindow === "chinese" && (
+                      <div className="content-card glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+                        <div className="content-card__header">
+                          <div>
+                            <h2>{t.chineseWindowTitle}</h2>
+                            <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+                          </div>
                         </div>
 
-                        <div className="field-box field-box--full">
-                          <label>{t.title}</label>
-                          <input
-                            type="text"
-                            value={currentData.title}
-                            onChange={(e) => handleChange("title", e.target.value)}
-                          />
-                        </div>
+                        <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                          <div className="field-box">
+                            <label>{t.badge} / Chinese</label>
+                            <input
+                              type="text"
+                              value={chineseData.badge}
+                              onChange={(e) =>
+                                handleChange("badge", e.target.value, "zh")
+                              }
+                            />
+                          </div>
 
-                        <div className="field-box field-box--full">
-                          <label>{t.description}</label>
-                          <textarea
-                            rows={5}
-                            value={currentData.description}
-                            onChange={(e) => handleChange("description", e.target.value)}
-                          />
-                        </div>
+                          <div className="field-box field-box--full">
+                            <label>{t.title} / Chinese</label>
+                            <input
+                              type="text"
+                              value={chineseData.title}
+                              onChange={(e) =>
+                                handleChange("title", e.target.value, "zh")
+                              }
+                            />
+                          </div>
 
-                        <div className="field-box">
-                          <label>{t.primaryButtonText}</label>
-                          <input
-                            type="text"
-                            value={currentData.primaryButtonText}
-                            onChange={(e) =>
-                              handleChange("primaryButtonText", e.target.value)
-                            }
-                          />
-                        </div>
+                          <div className="field-box field-box--full">
+                            <label>{t.description} / Chinese</label>
+                            <textarea
+                              rows={5}
+                              value={chineseData.description}
+                              onChange={(e) =>
+                                handleChange("description", e.target.value, "zh")
+                              }
+                            />
+                          </div>
 
-                        <div className="field-box">
-                          <label>{t.primaryButtonLink}</label>
-                          <input
-                            type="text"
-                            value={currentData.primaryButtonLink}
-                            onChange={(e) =>
-                              handleChange("primaryButtonLink", e.target.value)
-                            }
-                          />
-                        </div>
+                          <div className="field-box">
+                            <label>{t.primaryButtonText} / Chinese</label>
+                            <input
+                              type="text"
+                              value={chineseData.primaryButtonText}
+                              onChange={(e) =>
+                                handleChange("primaryButtonText", e.target.value, "zh")
+                              }
+                            />
+                          </div>
 
-                        <div className="field-box">
-                          <label>{t.secondaryButtonText}</label>
-                          <input
-                            type="text"
-                            value={currentData.secondaryButtonText}
-                            onChange={(e) =>
-                              handleChange("secondaryButtonText", e.target.value)
-                            }
-                          />
-                        </div>
+                          <div className="field-box">
+                            <label>{t.primaryButtonLink} / Chinese</label>
+                            <input
+                              type="text"
+                              value={chineseData.primaryButtonLink}
+                              onChange={(e) =>
+                                handleChange("primaryButtonLink", e.target.value, "zh")
+                              }
+                            />
+                          </div>
 
-                        <div className="field-box">
-                          <label>{t.secondaryButtonLink}</label>
-                          <input
-                            type="text"
-                            value={currentData.secondaryButtonLink}
-                            onChange={(e) =>
-                              handleChange("secondaryButtonLink", e.target.value)
-                            }
-                          />
+                          <div className="field-box">
+                            <label>{t.secondaryButtonText} / Chinese</label>
+                            <input
+                              type="text"
+                              value={chineseData.secondaryButtonText}
+                              onChange={(e) =>
+                                handleChange("secondaryButtonText", e.target.value, "zh")
+                              }
+                            />
+                          </div>
+
+                          <div className="field-box">
+                            <label>{t.secondaryButtonLink} / Chinese</label>
+                            <input
+                              type="text"
+                              value={chineseData.secondaryButtonLink}
+                              onChange={(e) =>
+                                handleChange("secondaryButtonLink", e.target.value, "zh")
+                              }
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>
@@ -733,53 +841,48 @@ export default function AdminDashboard() {
             )}
 
             {activeSection === "expertise" && (
-            <AreasOfExpertiseEditor lang={lang} user={user} />
+              <AreasOfExpertiseEditor lang={lang} user={user} />
             )}
 
             {activeSection === "contact" && (
-  <ContactSectionEditor lang={lang} user={user} />
-)}
+              <ContactSectionEditor lang={lang} user={user} />
+            )}
 
-           {activeSection === "discipline" && (
-          <DisciplineSectionEditor lang={lang} user={user} />
-           )}
+            {activeSection === "discipline" && (
+              <DisciplineSectionEditor lang={lang} user={user} />
+            )}
 
-           {activeSection === "faq" && (
-  <FaqSectionEditor lang={lang} user={user} />
-)}
+            {activeSection === "faq" && (
+              <FaqSectionEditor lang={lang} user={user} />
+            )}
 
-          {activeSection === "industrial" && (
-  <IndustrialBrandsEditor lang={lang} user={user} />
-)}
-           {activeSection === "investments" && (
-  <InvestmentsProjectsEditor lang={lang} user={user} />
-)}
+            {activeSection === "latestWritings" && (
+              <LatestWritingsEditor lang={lang} user={user} />
+            )}
 
-           {activeSection === "latestWritings" && (
-  <LatestWritingsEditor lang={lang} user={user} />
-)}
-
-           {activeSection === "moments" && (
-  <MomentsMilestonesEditor lang={lang} user={user} />
-)}
+            {activeSection === "moments" && (
+              <MomentsMilestonesEditor lang={lang} user={user} />
+            )}
 
             {activeSection === "story" && (
-  <StorySectionEditor lang={lang} user={user} />
-)}
+              <StorySectionEditor lang={lang} user={user} />
+            )}
 
-           {activeSection === "successStories" && (
-  <SuccessStoriesEditor lang={lang} user={user} />
-)}
-          {activeSection === "layout" && (
-  <LayoutSectionEditor lang={lang} user={user} />
-)}  
-           {activeSection === "posts" && (
-  <PostsEditor lang={lang} user={user} />
-)}
+            {activeSection === "successStories" && (
+              <SuccessStoriesEditor lang={lang} user={user} />
+            )}
 
-          {activeSection === "experience" && (
-  <ExperienceSectionEditor lang={lang} user={user} />
-)}
+            {activeSection === "layout" && (
+              <LayoutSectionEditor lang={lang} user={user} />
+            )}
+
+            {activeSection === "posts" && (
+              <PostsEditor lang={lang} user={user} />
+            )}
+
+            {activeSection === "experience" && (
+              <ExperienceSectionEditor lang={lang} user={user} />
+            )}
           </div>
         </div>
       </main>

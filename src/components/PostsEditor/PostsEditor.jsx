@@ -22,6 +22,7 @@ const postsUiText = {
 
     arabic: "العربية",
     english: "الإنجليزية",
+    chinese: "الصينية",
 
     category: "نوع المنشور",
     article: "مقال",
@@ -91,7 +92,7 @@ const postsUiText = {
     deleteError: "حدث خطأ أثناء حذف المنشور",
     loadError: "حدث خطأ أثناء تحميل المنشورات",
     slugRequired: "يرجى إدخال الـ slug",
-    titleRequired: "يرجى إدخال عنوان المنشور على الأقل بإحدى اللغتين",
+    titleRequired: "يرجى إدخال عنوان المنشور على الأقل بإحدى اللغات",
     featuredImageRequired: "يرجى اختيار الصورة الرئيسية",
     eventDateInvalid: "يرجى التأكد أن تاريخ انتهاء الفعالية بعد تاريخ بدايتها",
 
@@ -124,6 +125,7 @@ const postsUiText = {
 
     arabic: "Arabic",
     english: "English",
+    chinese: "Chinese",
 
     category: "Post Type",
     article: "Article",
@@ -243,6 +245,17 @@ const topTemplate = {
 
 <h3>Subheading</h3>
 <p>Write more text before the middle image here...</p>`,
+  zh: `<h2>简介</h2>
+<p>在这里写第一段内容...</p>
+<p>在这里写第二段内容...</p>
+
+<blockquote>
+  "在这里写引用内容"
+  <span class="quote-author">— 发言人姓名，职位</span>
+</blockquote>
+
+<h3>副标题</h3>
+<p>在中间图片之前写更多内容...</p>`,
 };
 
 const bottomTemplate = {
@@ -270,6 +283,18 @@ const bottomTemplate = {
 <h3>Conclusion</h3>
 <p>Write the conclusion paragraph here...</p>
 <p>Write another paragraph here...</p>`,
+  zh: `<h3>其他资源</h3>
+<p>在这里写内容...</p>
+
+<ol>
+  <li>第一项</li>
+  <li>第二项</li>
+  <li>第三项</li>
+</ol>
+
+<h3>结论</h3>
+<p>在这里写结论段落...</p>
+<p>在这里写另一段内容...</p>`,
 };
 
 const defaultLocalizedData = {
@@ -321,6 +346,7 @@ const defaultPostData = {
 
   ar: { ...defaultLocalizedData },
   en: { ...defaultLocalizedData },
+  zh: { ...defaultLocalizedData },
 };
 
 const createSlug = (text = "") =>
@@ -350,11 +376,13 @@ const formatDate = (value) => {
 const toDateTimeLocalValue = (value) => {
   if (!value) return "";
   try {
-    const date = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+    const date =
+      typeof value?.toDate === "function" ? value.toDate() : new Date(value);
     const pad = (n) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-      date.getHours()
-    )}:${pad(date.getMinutes())}`;
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   } catch {
     return "";
   }
@@ -427,6 +455,7 @@ const compressImageToLimit = async (
   }
 
   let scale = 0.9;
+
   while (blob.size > maxSizeBytes && canvas.width > 800 && canvas.height > 800) {
     const resizedCanvas = document.createElement("canvas");
     const resizedCtx = resizedCanvas.getContext("2d");
@@ -434,7 +463,13 @@ const compressImageToLimit = async (
     resizedCanvas.width = Math.round(canvas.width * scale);
     resizedCanvas.height = Math.round(canvas.height * scale);
 
-    resizedCtx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+    resizedCtx.drawImage(
+      canvas,
+      0,
+      0,
+      resizedCanvas.width,
+      resizedCanvas.height
+    );
 
     canvas.width = resizedCanvas.width;
     canvas.height = resizedCanvas.height;
@@ -449,6 +484,7 @@ const compressImageToLimit = async (
   }
 
   const originalBaseName = file.name.replace(/\.[^/.]+$/, "");
+
   return new File([blob], `${originalBaseName}.jpg`, {
     type: outputType,
     lastModified: Date.now(),
@@ -510,7 +546,7 @@ export default function PostsEditor({ lang = "ar", user }) {
   const [error, setError] = useState("");
 
   const t = postsUiText[lang] || postsUiText.ar;
-  const currentData = formData[editorLang];
+  const currentData = formData[editorLang] || defaultLocalizedData;
   const isEditing = Boolean(editingPostId);
 
   const isEvent = formData.category === "event";
@@ -521,6 +557,7 @@ export default function PostsEditor({ lang = "ar", user }) {
     if (formData.featuredImageFile) {
       return URL.createObjectURL(formData.featuredImageFile);
     }
+
     return "";
   }, [formData.featuredImageFile]);
 
@@ -528,6 +565,7 @@ export default function PostsEditor({ lang = "ar", user }) {
     if (formData.middleImageFile) {
       return URL.createObjectURL(formData.middleImageFile);
     }
+
     return "";
   }, [formData.middleImageFile]);
 
@@ -581,7 +619,7 @@ export default function PostsEditor({ lang = "ar", user }) {
     setFormData((prev) => ({
       ...prev,
       [editorLang]: {
-        ...prev[editorLang],
+        ...(prev[editorLang] || defaultLocalizedData),
         [field]: value,
       },
     }));
@@ -595,7 +633,8 @@ export default function PostsEditor({ lang = "ar", user }) {
   };
 
   const handleGenerateSlug = () => {
-    const sourceTitle = formData.en.title || formData.ar.title || "";
+    const sourceTitle =
+      formData.en.title || formData.ar.title || formData.zh.title || "";
     const generatedSlug = createSlug(sourceTitle);
 
     setFormData((prev) => ({
@@ -608,8 +647,8 @@ export default function PostsEditor({ lang = "ar", user }) {
     setFormData((prev) => ({
       ...prev,
       [editorLang]: {
-        ...prev[editorLang],
-        contentTopHtml: topTemplate[editorLang],
+        ...(prev[editorLang] || defaultLocalizedData),
+        contentTopHtml: topTemplate[editorLang] || "",
       },
     }));
   };
@@ -618,8 +657,8 @@ export default function PostsEditor({ lang = "ar", user }) {
     setFormData((prev) => ({
       ...prev,
       [editorLang]: {
-        ...prev[editorLang],
-        contentBottomHtml: bottomTemplate[editorLang],
+        ...(prev[editorLang] || defaultLocalizedData),
+        contentBottomHtml: bottomTemplate[editorLang] || "",
       },
     }));
   };
@@ -629,7 +668,9 @@ export default function PostsEditor({ lang = "ar", user }) {
       ...defaultPostData,
       ar: { ...defaultLocalizedData },
       en: { ...defaultLocalizedData },
+      zh: { ...defaultLocalizedData },
     });
+
     setEditorLang("ar");
     setEditingPostId("");
   };
@@ -693,6 +734,10 @@ export default function PostsEditor({ lang = "ar", user }) {
         ...defaultLocalizedData,
         ...(post.en || {}),
       },
+      zh: {
+        ...defaultLocalizedData,
+        ...(post.zh || {}),
+      },
     });
 
     setMessage(t.editingNow);
@@ -723,12 +768,25 @@ export default function PostsEditor({ lang = "ar", user }) {
       setError(err?.message || t.deleteError);
     } finally {
       setDeletingId("");
+
       setTimeout(() => {
         setMessage("");
         setError("");
       }, 4000);
     }
   };
+
+  const buildLocalizedPayload = (language) => ({
+    title: formData[language].title.trim(),
+    subtitle: formData[language].subtitle.trim(),
+    excerpt: formData[language].excerpt.trim(),
+    contentTopHtml: formData[language].contentTopHtml,
+    contentBottomHtml: formData[language].contentBottomHtml,
+    middleImageCaption: formData[language].middleImageCaption.trim(),
+    locationText: formData[language].locationText.trim(),
+    seoTitle: formData[language].seoTitle.trim(),
+    seoDescription: formData[language].seoDescription.trim(),
+  });
 
   const handleSave = async () => {
     try {
@@ -741,7 +799,11 @@ export default function PostsEditor({ lang = "ar", user }) {
         return;
       }
 
-      if (!formData.ar.title.trim() && !formData.en.title.trim()) {
+      if (
+        !formData.ar.title.trim() &&
+        !formData.en.title.trim() &&
+        !formData.zh.title.trim()
+      ) {
         setError(t.titleRequired);
         return;
       }
@@ -834,29 +896,9 @@ export default function PostsEditor({ lang = "ar", user }) {
         updatedAt: serverTimestamp(),
         createdBy: formData.createdBy || user?.email || "unknown",
 
-        ar: {
-          title: formData.ar.title.trim(),
-          subtitle: formData.ar.subtitle.trim(),
-          excerpt: formData.ar.excerpt.trim(),
-          contentTopHtml: formData.ar.contentTopHtml,
-          contentBottomHtml: formData.ar.contentBottomHtml,
-          middleImageCaption: formData.ar.middleImageCaption.trim(),
-          locationText: formData.ar.locationText.trim(),
-          seoTitle: formData.ar.seoTitle.trim(),
-          seoDescription: formData.ar.seoDescription.trim(),
-        },
-
-        en: {
-          title: formData.en.title.trim(),
-          subtitle: formData.en.subtitle.trim(),
-          excerpt: formData.en.excerpt.trim(),
-          contentTopHtml: formData.en.contentTopHtml,
-          contentBottomHtml: formData.en.contentBottomHtml,
-          middleImageCaption: formData.en.middleImageCaption.trim(),
-          locationText: formData.en.locationText.trim(),
-          seoTitle: formData.en.seoTitle.trim(),
-          seoDescription: formData.en.seoDescription.trim(),
-        },
+        ar: buildLocalizedPayload("ar"),
+        en: buildLocalizedPayload("en"),
+        zh: buildLocalizedPayload("zh"),
       };
 
       if (isEditing) {
@@ -931,7 +973,10 @@ export default function PostsEditor({ lang = "ar", user }) {
         </div>
       )}
 
-      <div className="editor-header glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+      <div
+        className="editor-header glass-card"
+        style={{ width: "100%", maxWidth: "100%" }}
+      >
         <div className="editor-header__text">
           <span className="editor-badge">
             {viewMode === "list" ? t.listModeBadge : t.formModeBadge}
@@ -947,12 +992,20 @@ export default function PostsEditor({ lang = "ar", user }) {
           style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
         >
           {viewMode === "list" ? (
-            <button className="admin-btn admin-btn--primary" type="button" onClick={openCreateForm}>
+            <button
+              className="admin-btn admin-btn--primary"
+              type="button"
+              onClick={openCreateForm}
+            >
               {t.goToAdd}
             </button>
           ) : (
             <>
-              <button className="admin-btn admin-btn--ghost" type="button" onClick={openListPage}>
+              <button
+                className="admin-btn admin-btn--ghost"
+                type="button"
+                onClick={openListPage}
+              >
                 {t.goToList}
               </button>
 
@@ -975,7 +1028,13 @@ export default function PostsEditor({ lang = "ar", user }) {
                 disabled={saving}
                 type="button"
               >
-                {saving ? (isEditing ? t.updating : t.saving) : isEditing ? t.update : t.save}
+                {saving
+                  ? isEditing
+                    ? t.updating
+                    : t.saving
+                  : isEditing
+                  ? t.update
+                  : t.save}
               </button>
             </>
           )}
@@ -983,7 +1042,10 @@ export default function PostsEditor({ lang = "ar", user }) {
       </div>
 
       {viewMode === "form" && (
-        <div className="content-card glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+        <div
+          className="content-card glass-card"
+          style={{ width: "100%", maxWidth: "100%" }}
+        >
           <div className="content-card__header">
             <h2>{t.formTitle}</h2>
           </div>
@@ -997,12 +1059,21 @@ export default function PostsEditor({ lang = "ar", user }) {
               >
                 {t.arabic}
               </button>
+
               <button
                 type="button"
                 className={editorLang === "en" ? "active" : ""}
                 onClick={() => setEditorLang("en")}
               >
                 {t.english}
+              </button>
+
+              <button
+                type="button"
+                className={editorLang === "zh" ? "active" : ""}
+                onClick={() => setEditorLang("zh")}
+              >
+                {t.chinese}
               </button>
             </div>
           </div>
@@ -1063,7 +1134,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                 <input
                   type="datetime-local"
                   value={formData.eventEndDate}
-                  onChange={(e) => handleRootChange("eventEndDate", e.target.value)}
+                  onChange={(e) =>
+                    handleRootChange("eventEndDate", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1094,7 +1167,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                 <input
                   type="datetime-local"
                   value={formData.sourcePublishedAt}
-                  onChange={(e) => handleRootChange("sourcePublishedAt", e.target.value)}
+                  onChange={(e) =>
+                    handleRootChange("sourcePublishedAt", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1116,7 +1191,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                 <select
                   className="posts-select"
                   value={formData.videoPlatform}
-                  onChange={(e) => handleRootChange("videoPlatform", e.target.value)}
+                  onChange={(e) =>
+                    handleRootChange("videoPlatform", e.target.value)
+                  }
                 >
                   <option value="youtube">YouTube</option>
                   <option value="vimeo">Vimeo</option>
@@ -1133,7 +1210,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                 <input
                   type="text"
                   value={formData.videoChannel}
-                  onChange={(e) => handleRootChange("videoChannel", e.target.value)}
+                  onChange={(e) =>
+                    handleRootChange("videoChannel", e.target.value)
+                  }
                 />
               </div>
 
@@ -1142,7 +1221,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                 <input
                   type="datetime-local"
                   value={formData.videoPublishedAt}
-                  onChange={(e) => handleRootChange("videoPublishedAt", e.target.value)}
+                  onChange={(e) =>
+                    handleRootChange("videoPublishedAt", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1178,7 +1259,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                 className="posts-file-input"
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileChange("featuredImageFile", e.target.files?.[0])}
+                onChange={(e) =>
+                  handleFileChange("featuredImageFile", e.target.files?.[0])
+                }
               />
             </div>
 
@@ -1238,7 +1321,9 @@ export default function PostsEditor({ lang = "ar", user }) {
             <input
               type="text"
               value={currentData.locationText}
-              onChange={(e) => handleLocalizedChange("locationText", e.target.value)}
+              onChange={(e) =>
+                handleLocalizedChange("locationText", e.target.value)
+              }
             />
           </div>
 
@@ -1265,7 +1350,9 @@ export default function PostsEditor({ lang = "ar", user }) {
               className="posts-content-textarea"
               rows={12}
               value={currentData.contentTopHtml}
-              onChange={(e) => handleLocalizedChange("contentTopHtml", e.target.value)}
+              onChange={(e) =>
+                handleLocalizedChange("contentTopHtml", e.target.value)
+              }
             />
           </div>
 
@@ -1279,7 +1366,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                   className="posts-file-input"
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleFileChange("middleImageFile", e.target.files?.[0])}
+                  onChange={(e) =>
+                    handleFileChange("middleImageFile", e.target.files?.[0])
+                  }
                 />
               </div>
 
@@ -1327,7 +1416,9 @@ export default function PostsEditor({ lang = "ar", user }) {
               className="posts-content-textarea"
               rows={12}
               value={currentData.contentBottomHtml}
-              onChange={(e) => handleLocalizedChange("contentBottomHtml", e.target.value)}
+              onChange={(e) =>
+                handleLocalizedChange("contentBottomHtml", e.target.value)
+              }
             />
           </div>
 
@@ -1345,7 +1436,9 @@ export default function PostsEditor({ lang = "ar", user }) {
             <textarea
               rows={3}
               value={currentData.seoDescription}
-              onChange={(e) => handleLocalizedChange("seoDescription", e.target.value)}
+              onChange={(e) =>
+                handleLocalizedChange("seoDescription", e.target.value)
+              }
             />
           </div>
         </div>
@@ -1371,6 +1464,7 @@ export default function PostsEditor({ lang = "ar", user }) {
                   post?.[lang]?.title ||
                   post?.en?.title ||
                   post?.ar?.title ||
+                  post?.zh?.title ||
                   post.slug ||
                   "Untitled";
 
@@ -1378,6 +1472,7 @@ export default function PostsEditor({ lang = "ar", user }) {
                   post?.[lang]?.subtitle ||
                   post?.en?.subtitle ||
                   post?.ar?.subtitle ||
+                  post?.zh?.subtitle ||
                   "";
 
                 return (
@@ -1392,7 +1487,9 @@ export default function PostsEditor({ lang = "ar", user }) {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: post.featuredImageUrl ? "140px 1fr" : "1fr",
+                        gridTemplateColumns: post.featuredImageUrl
+                          ? "140px 1fr"
+                          : "1fr",
                         gap: "16px",
                         alignItems: "start",
                       }}
@@ -1423,7 +1520,8 @@ export default function PostsEditor({ lang = "ar", user }) {
                           <div>
                             <h3 style={{ margin: "0 0 8px" }}>{title}</h3>
                             <p style={{ margin: "0 0 8px", opacity: 0.8 }}>
-                              <strong>{t.category}:</strong> {getCategoryLabel(post.category)}
+                              <strong>{t.category}:</strong>{" "}
+                              {getCategoryLabel(post.category)}
                             </p>
                             <p style={{ margin: "0 0 8px", opacity: 0.8 }}>
                               <strong>Slug:</strong> {post.slug || "-"}
@@ -1482,13 +1580,15 @@ export default function PostsEditor({ lang = "ar", user }) {
                             <strong>{t.updatedAt}:</strong> {formatDate(post.updatedAt)}
                           </div>
                           <div>
-                            <strong>{t.publishedAt}:</strong> {formatDate(post.publishedAt)}
+                            <strong>{t.publishedAt}:</strong>{" "}
+                            {formatDate(post.publishedAt)}
                           </div>
 
                           {post.category === "event" && (
                             <>
                               <div>
-                                <strong>{t.eventDate}:</strong> {formatDate(post.eventDate)}
+                                <strong>{t.eventDate}:</strong>{" "}
+                                {formatDate(post.eventDate)}
                               </div>
                               <div>
                                 <strong>{t.eventEndDate}:</strong>{" "}
@@ -1500,7 +1600,8 @@ export default function PostsEditor({ lang = "ar", user }) {
                           {post.category === "interview" && (
                             <>
                               <div>
-                                <strong>{t.sourceName}:</strong> {post.sourceName || "-"}
+                                <strong>{t.sourceName}:</strong>{" "}
+                                {post.sourceName || "-"}
                               </div>
                               <div>
                                 <strong>{t.sourcePublishedAt}:</strong>{" "}
@@ -1512,10 +1613,12 @@ export default function PostsEditor({ lang = "ar", user }) {
                           {post.category === "media" && (
                             <>
                               <div>
-                                <strong>{t.videoPlatform}:</strong> {post.videoPlatform || "-"}
+                                <strong>{t.videoPlatform}:</strong>{" "}
+                                {post.videoPlatform || "-"}
                               </div>
                               <div>
-                                <strong>{t.videoChannel}:</strong> {post.videoChannel || "-"}
+                                <strong>{t.videoChannel}:</strong>{" "}
+                                {post.videoChannel || "-"}
                               </div>
                               <div>
                                 <strong>{t.videoPublishedAt}:</strong>{" "}
@@ -1529,7 +1632,11 @@ export default function PostsEditor({ lang = "ar", user }) {
                           </div>
                         </div>
 
-                        {subtitle && <p style={{ marginTop: "12px", opacity: 0.9 }}>{subtitle}</p>}
+                        {subtitle && (
+                          <p style={{ marginTop: "12px", opacity: 0.9 }}>
+                            {subtitle}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

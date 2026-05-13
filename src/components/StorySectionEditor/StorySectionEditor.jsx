@@ -10,6 +10,11 @@ const storyUiText = {
     firestorePath: "siteContent / story_video",
     title: "العنوان",
     description: "الوصف",
+    currentWindow: "محتوى القسم الحالي",
+    chinese: "الصينية",
+    chineseWindowTitle: "نافذة إضافة محتوى القصة بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
     save: "حفظ التعديلات",
     saving: "جارٍ الحفظ...",
     loading: "جارٍ تحميل البيانات...",
@@ -25,6 +30,11 @@ const storyUiText = {
     firestorePath: "siteContent / story_video",
     title: "Title",
     description: "Description",
+    currentWindow: "Current Section Content",
+    chinese: "Chinese",
+    chineseWindowTitle: "Chinese Story Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
     save: "Save Changes",
     saving: "Saving...",
     loading: "Loading data...",
@@ -35,18 +45,19 @@ const storyUiText = {
   },
 };
 
+const emptyStoryLanguageData = {
+  title: "",
+  description: "",
+};
+
 const defaultStoryData = {
-  ar: {
-    title: "",
-    description: "",
-  },
-  en: {
-    title: "",
-    description: "",
-  },
+  ar: { ...emptyStoryLanguageData },
+  en: { ...emptyStoryLanguageData },
+  zh: { ...emptyStoryLanguageData },
 };
 
 export default function StorySectionEditor({ lang = "ar", user }) {
+  const [storyWindow, setStoryWindow] = useState("default");
   const [formData, setFormData] = useState(defaultStoryData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,7 +65,8 @@ export default function StorySectionEditor({ lang = "ar", user }) {
   const [error, setError] = useState("");
 
   const t = storyUiText[lang];
-  const currentData = formData[lang];
+  const currentData = formData[lang] || emptyStoryLanguageData;
+  const chineseData = formData.zh || emptyStoryLanguageData;
 
   useEffect(() => {
     fetchStoryData();
@@ -80,6 +92,10 @@ export default function StorySectionEditor({ lang = "ar", user }) {
             ...defaultStoryData.en,
             ...(data.en || {}),
           },
+          zh: {
+            ...defaultStoryData.zh,
+            ...(data.zh || {}),
+          },
         });
       } else {
         await setDoc(docRef, defaultStoryData);
@@ -93,11 +109,11 @@ export default function StorySectionEditor({ lang = "ar", user }) {
     }
   };
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value, targetLang = lang) => {
     setFormData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyStoryLanguageData),
         [field]: value,
       },
     }));
@@ -114,7 +130,9 @@ export default function StorySectionEditor({ lang = "ar", user }) {
       await setDoc(
         docRef,
         {
-          ...formData,
+          ar: formData.ar || defaultStoryData.ar,
+          en: formData.en || defaultStoryData.en,
+          zh: formData.zh || defaultStoryData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -182,7 +200,33 @@ export default function StorySectionEditor({ lang = "ar", user }) {
           </p>
         </div>
 
-        <div className="editor-header__actions">
+        <div
+          className="editor-header__actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="language-switch">
+            <button
+              type="button"
+              className={storyWindow === "default" ? "active" : ""}
+              onClick={() => setStoryWindow("default")}
+            >
+              {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+            </button>
+
+            <button
+              type="button"
+              className={storyWindow === "chinese" ? "active" : ""}
+              onClick={() => setStoryWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+
           <button
             className="admin-btn admin-btn--primary"
             onClick={handleSave}
@@ -193,54 +237,100 @@ export default function StorySectionEditor({ lang = "ar", user }) {
         </div>
       </div>
 
-      <div
-        className="content-card glass-card"
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-        }}
-      >
-        <div className="content-card__header">
-          <h2>{t.formTitle}</h2>
-        </div>
-
+      {storyWindow === "default" && (
         <div
-          style={{
-            marginBottom: "16px",
-            padding: "12px 14px",
-            border: "1px solid #e5e7eb",
-            borderRadius: "12px",
-          }}
-        >
-          {t.note}
-        </div>
-
-        <div
-          className="fields-grid"
+          className="content-card glass-card"
           style={{
             width: "100%",
             maxWidth: "100%",
           }}
         >
-          <div className="field-box field-box--full">
-            <label>{t.title}</label>
-            <input
-              type="text"
-              value={currentData.title || ""}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
+          <div className="content-card__header">
+            <h2>{t.currentWindow}</h2>
           </div>
 
-          <div className="field-box field-box--full">
-            <label>{t.description}</label>
-            <textarea
-              rows={5}
-              value={currentData.description || ""}
-              onChange={(e) => handleChange("description", e.target.value)}
-            />
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "12px 14px",
+              border: "1px solid #e5e7eb",
+              borderRadius: "12px",
+            }}
+          >
+            {t.note}
+          </div>
+
+          <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+            <div className="field-box field-box--full">
+              <label>{t.title}</label>
+              <input
+                type="text"
+                value={currentData.title || ""}
+                onChange={(e) => handleChange("title", e.target.value)}
+              />
+            </div>
+
+            <div className="field-box field-box--full">
+              <label>{t.description}</label>
+              <textarea
+                rows={5}
+                value={currentData.description || ""}
+                onChange={(e) => handleChange("description", e.target.value)}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {storyWindow === "chinese" && (
+        <div
+          className="content-card glass-card"
+          style={{
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseWindowTitle}</h2>
+              <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "12px 14px",
+              border: "1px solid #e5e7eb",
+              borderRadius: "12px",
+            }}
+          >
+            {t.note}
+          </div>
+
+          <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+            <div className="field-box field-box--full">
+              <label>{t.title} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.title || ""}
+                onChange={(e) => handleChange("title", e.target.value, "zh")}
+              />
+            </div>
+
+            <div className="field-box field-box--full">
+              <label>{t.description} / Chinese</label>
+              <textarea
+                rows={5}
+                value={chineseData.description || ""}
+                onChange={(e) =>
+                  handleChange("description", e.target.value, "zh")
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

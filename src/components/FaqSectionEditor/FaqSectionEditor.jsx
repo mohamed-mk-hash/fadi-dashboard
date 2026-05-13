@@ -9,22 +9,24 @@ const faqUiText = {
     firestoreInfo: "المسار المستخدم في Firebase",
     firestorePath: "siteContent / questions",
 
+    currentWindow: "محتوى القسم الحالي",
+    chinese: "الصينية",
+    chineseWindowTitle: "نافذة إضافة محتوى الأسئلة الشائعة بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
+
     title: "العنوان",
     description: "الوصف",
     buttonText: "نص الزر",
 
     questionOne: "السؤال الأول",
     answerOne: "الإجابة الأولى",
-
     questionTwo: "السؤال الثاني",
     answerTwo: "الإجابة الثانية",
-
     questionThree: "السؤال الثالث",
     answerThree: "الإجابة الثالثة",
-
     questionFour: "السؤال الرابع",
     answerFour: "الإجابة الرابعة",
-
     questionFive: "السؤال الخامس",
     answerFive: "الإجابة الخامسة",
 
@@ -41,22 +43,24 @@ const faqUiText = {
     firestoreInfo: "Firebase path used",
     firestorePath: "siteContent / questions",
 
+    currentWindow: "Current Section Content",
+    chinese: "Chinese",
+    chineseWindowTitle: "Chinese FAQ Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
+
     title: "Title",
     description: "Description",
     buttonText: "Button Text",
 
     questionOne: "Question One",
     answerOne: "Answer One",
-
     questionTwo: "Question Two",
     answerTwo: "Answer Two",
-
     questionThree: "Question Three",
     answerThree: "Answer Three",
-
     questionFour: "Question Four",
     answerFour: "Answer Four",
-
     questionFive: "Question Five",
     answerFive: "Answer Five",
 
@@ -69,40 +73,30 @@ const faqUiText = {
   },
 };
 
+const emptyFaqLanguageData = {
+  title: "",
+  description: "",
+  button_text: "",
+  question_one: "",
+  answer_one: "",
+  question_two: "",
+  answer_two: "",
+  question_three: "",
+  answer_three: "",
+  question_four: "",
+  answer_four: "",
+  question_five: "",
+  answer_five: "",
+};
+
 const defaultFaqData = {
-  ar: {
-    title: "",
-    description: "",
-    button_text: "",
-    question_one: "",
-    answer_one: "",
-    question_two: "",
-    answer_two: "",
-    question_three: "",
-    answer_three: "",
-    question_four: "",
-    answer_four: "",
-    question_five: "",
-    answer_five: "",
-  },
-  en: {
-    title: "",
-    description: "",
-    button_text: "",
-    question_one: "",
-    answer_one: "",
-    question_two: "",
-    answer_two: "",
-    question_three: "",
-    answer_three: "",
-    question_four: "",
-    answer_four: "",
-    question_five: "",
-    answer_five: "",
-  },
+  ar: { ...emptyFaqLanguageData },
+  en: { ...emptyFaqLanguageData },
+  zh: { ...emptyFaqLanguageData },
 };
 
 export default function FaqSectionEditor({ lang = "ar", user }) {
+  const [faqWindow, setFaqWindow] = useState("default");
   const [formData, setFormData] = useState(defaultFaqData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -110,7 +104,8 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
   const [error, setError] = useState("");
 
   const t = faqUiText[lang];
-  const currentData = formData[lang];
+  const currentData = formData[lang] || emptyFaqLanguageData;
+  const chineseData = formData.zh || emptyFaqLanguageData;
 
   useEffect(() => {
     fetchFaqData();
@@ -136,6 +131,10 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
             ...defaultFaqData.en,
             ...(data.en || {}),
           },
+          zh: {
+            ...defaultFaqData.zh,
+            ...(data.zh || {}),
+          },
         });
       } else {
         await setDoc(docRef, defaultFaqData);
@@ -149,11 +148,11 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
     }
   };
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value, targetLang = lang) => {
     setFormData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyFaqLanguageData),
         [field]: value,
       },
     }));
@@ -170,7 +169,9 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
       await setDoc(
         docRef,
         {
-          ...formData,
+          ar: formData.ar || defaultFaqData.ar,
+          en: formData.en || defaultFaqData.en,
+          zh: formData.zh || defaultFaqData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -190,6 +191,157 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
       }, 3000);
     }
   };
+
+  const renderFaqFields = (data, targetLang = lang, suffix = "") => (
+    <div
+      className="fields-grid"
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+      }}
+    >
+      <div className="field-box field-box--full">
+        <label>{t.title}{suffix}</label>
+        <input
+          type="text"
+          value={data.title}
+          onChange={(e) => handleChange("title", e.target.value, targetLang)}
+        />
+      </div>
+
+      <div className="field-box field-box--full">
+        <label>{t.description}{suffix}</label>
+        <textarea
+          rows={4}
+          value={data.description}
+          onChange={(e) =>
+            handleChange("description", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box field-box--full">
+        <label>{t.buttonText}{suffix}</label>
+        <input
+          type="text"
+          value={data.button_text}
+          onChange={(e) =>
+            handleChange("button_text", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.questionOne}{suffix}</label>
+        <input
+          type="text"
+          value={data.question_one}
+          onChange={(e) =>
+            handleChange("question_one", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.answerOne}{suffix}</label>
+        <textarea
+          rows={4}
+          value={data.answer_one}
+          onChange={(e) =>
+            handleChange("answer_one", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.questionTwo}{suffix}</label>
+        <input
+          type="text"
+          value={data.question_two}
+          onChange={(e) =>
+            handleChange("question_two", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.answerTwo}{suffix}</label>
+        <textarea
+          rows={4}
+          value={data.answer_two}
+          onChange={(e) =>
+            handleChange("answer_two", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.questionThree}{suffix}</label>
+        <input
+          type="text"
+          value={data.question_three}
+          onChange={(e) =>
+            handleChange("question_three", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.answerThree}{suffix}</label>
+        <textarea
+          rows={4}
+          value={data.answer_three}
+          onChange={(e) =>
+            handleChange("answer_three", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.questionFour}{suffix}</label>
+        <input
+          type="text"
+          value={data.question_four}
+          onChange={(e) =>
+            handleChange("question_four", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.answerFour}{suffix}</label>
+        <textarea
+          rows={4}
+          value={data.answer_four}
+          onChange={(e) =>
+            handleChange("answer_four", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.questionFive}{suffix}</label>
+        <input
+          type="text"
+          value={data.question_five}
+          onChange={(e) =>
+            handleChange("question_five", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box">
+        <label>{t.answerFive}{suffix}</label>
+        <textarea
+          rows={4}
+          value={data.answer_five}
+          onChange={(e) =>
+            handleChange("answer_five", e.target.value, targetLang)
+          }
+        />
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -238,7 +390,33 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
           </p>
         </div>
 
-        <div className="editor-header__actions">
+        <div
+          className="editor-header__actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="language-switch">
+            <button
+              type="button"
+              className={faqWindow === "default" ? "active" : ""}
+              onClick={() => setFaqWindow("default")}
+            >
+              {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+            </button>
+
+            <button
+              type="button"
+              className={faqWindow === "chinese" ? "active" : ""}
+              onClick={() => setFaqWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+
           <button
             className="admin-btn admin-btn--primary"
             onClick={handleSave}
@@ -249,142 +427,40 @@ export default function FaqSectionEditor({ lang = "ar", user }) {
         </div>
       </div>
 
-      <div
-        className="content-card glass-card"
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-        }}
-      >
-        <div className="content-card__header">
-          <h2>{t.formTitle}</h2>
-        </div>
-
+      {faqWindow === "default" && (
         <div
-          className="fields-grid"
+          className="content-card glass-card"
           style={{
             width: "100%",
             maxWidth: "100%",
           }}
         >
-          <div className="field-box field-box--full">
-            <label>{t.title}</label>
-            <input
-              type="text"
-              value={currentData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
+          <div className="content-card__header">
+            <h2>{t.currentWindow}</h2>
           </div>
 
-          <div className="field-box field-box--full">
-            <label>{t.description}</label>
-            <textarea
-              rows={4}
-              value={currentData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box field-box--full">
-            <label>{t.buttonText}</label>
-            <input
-              type="text"
-              value={currentData.button_text}
-              onChange={(e) => handleChange("button_text", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.questionOne}</label>
-            <input
-              type="text"
-              value={currentData.question_one}
-              onChange={(e) => handleChange("question_one", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.answerOne}</label>
-            <textarea
-              rows={4}
-              value={currentData.answer_one}
-              onChange={(e) => handleChange("answer_one", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.questionTwo}</label>
-            <input
-              type="text"
-              value={currentData.question_two}
-              onChange={(e) => handleChange("question_two", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.answerTwo}</label>
-            <textarea
-              rows={4}
-              value={currentData.answer_two}
-              onChange={(e) => handleChange("answer_two", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.questionThree}</label>
-            <input
-              type="text"
-              value={currentData.question_three}
-              onChange={(e) => handleChange("question_three", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.answerThree}</label>
-            <textarea
-              rows={4}
-              value={currentData.answer_three}
-              onChange={(e) => handleChange("answer_three", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.questionFour}</label>
-            <input
-              type="text"
-              value={currentData.question_four}
-              onChange={(e) => handleChange("question_four", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.answerFour}</label>
-            <textarea
-              rows={4}
-              value={currentData.answer_four}
-              onChange={(e) => handleChange("answer_four", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.questionFive}</label>
-            <input
-              type="text"
-              value={currentData.question_five}
-              onChange={(e) => handleChange("question_five", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.answerFive}</label>
-            <textarea
-              rows={4}
-              value={currentData.answer_five}
-              onChange={(e) => handleChange("answer_five", e.target.value)}
-            />
-          </div>
+          {renderFaqFields(currentData)}
         </div>
-      </div>
+      )}
+
+      {faqWindow === "chinese" && (
+        <div
+          className="content-card glass-card"
+          style={{
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseWindowTitle}</h2>
+              <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+            </div>
+          </div>
+
+          {renderFaqFields(chineseData, "zh", " / Chinese")}
+        </div>
+      )}
     </div>
   );
 }

@@ -15,6 +15,11 @@ const aboutUiText = {
     experienceTitle: "عنوان الخبرة",
     foundationNumber: "رقم التأسيس",
     foundationTitle: "عنوان التأسيس",
+    currentWindow: "محتوى القسم الحالي",
+    chinese: "الصينية",
+    chineseWindowTitle: "نافذة إضافة محتوى قسم من أنا بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
     save: "حفظ التعديلات",
     saving: "جارٍ الحفظ...",
     loading: "جارٍ تحميل البيانات...",
@@ -34,6 +39,11 @@ const aboutUiText = {
     experienceTitle: "Experience Title",
     foundationNumber: "Foundation Number",
     foundationTitle: "Foundation Title",
+    currentWindow: "Current Section Content",
+    chinese: "Chinese",
+    chineseWindowTitle: "Chinese About Section Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
     save: "Save Changes",
     saving: "Saving...",
     loading: "Loading data...",
@@ -43,28 +53,24 @@ const aboutUiText = {
   },
 };
 
+const emptyAboutLanguageData = {
+  title: "",
+  description: "",
+  experience_number: "",
+  experience_title: "",
+  foundation_number: "",
+  foundation_title: "",
+  image_description: "",
+};
+
 const defaultAboutData = {
-  ar: {
-    title: "",
-    description: "",
-    experience_number: "",
-    experience_title: "",
-    foundation_number: "",
-    foundation_title: "",
-    image_description: "",
-  },
-  en: {
-    title: "",
-    description: "",
-    experience_number: "",
-    experience_title: "",
-    foundation_number: "",
-    foundation_title: "",
-    image_description: "",
-  },
+  ar: { ...emptyAboutLanguageData },
+  en: { ...emptyAboutLanguageData },
+  zh: { ...emptyAboutLanguageData },
 };
 
 export default function AboutSectionEditor({ lang = "ar", user }) {
+  const [aboutWindow, setAboutWindow] = useState("default");
   const [formData, setFormData] = useState(defaultAboutData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -72,7 +78,8 @@ export default function AboutSectionEditor({ lang = "ar", user }) {
   const [error, setError] = useState("");
 
   const t = aboutUiText[lang];
-  const currentData = formData[lang];
+  const currentData = formData[lang] || emptyAboutLanguageData;
+  const chineseData = formData.zh || emptyAboutLanguageData;
 
   useEffect(() => {
     fetchAboutData();
@@ -98,6 +105,10 @@ export default function AboutSectionEditor({ lang = "ar", user }) {
             ...defaultAboutData.en,
             ...(data.en || {}),
           },
+          zh: {
+            ...defaultAboutData.zh,
+            ...(data.zh || {}),
+          },
         });
       } else {
         await setDoc(docRef, defaultAboutData);
@@ -111,11 +122,11 @@ export default function AboutSectionEditor({ lang = "ar", user }) {
     }
   };
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value, targetLang = lang) => {
     setFormData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyAboutLanguageData),
         [field]: value,
       },
     }));
@@ -132,7 +143,9 @@ export default function AboutSectionEditor({ lang = "ar", user }) {
       await setDoc(
         docRef,
         {
-          ...formData,
+          ar: formData.ar || defaultAboutData.ar,
+          en: formData.en || defaultAboutData.en,
+          zh: formData.zh || defaultAboutData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -200,7 +213,33 @@ export default function AboutSectionEditor({ lang = "ar", user }) {
           </p>
         </div>
 
-        <div className="editor-header__actions">
+        <div
+          className="editor-header__actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="language-switch">
+            <button
+              type="button"
+              className={aboutWindow === "default" ? "active" : ""}
+              onClick={() => setAboutWindow("default")}
+            >
+              {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+            </button>
+
+            <button
+              type="button"
+              className={aboutWindow === "chinese" ? "active" : ""}
+              onClick={() => setAboutWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+
           <button
             className="admin-btn admin-btn--primary"
             onClick={handleSave}
@@ -211,88 +250,200 @@ export default function AboutSectionEditor({ lang = "ar", user }) {
         </div>
       </div>
 
-      <div
-        className="content-card glass-card"
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-        }}
-      >
-        <div className="content-card__header">
-          <h2>{t.formTitle}</h2>
-        </div>
-
+      {aboutWindow === "default" && (
         <div
-          className="fields-grid"
+          className="content-card glass-card"
           style={{
             width: "100%",
             maxWidth: "100%",
           }}
         >
-          <div className="field-box field-box--full">
-            <label>{t.title}</label>
-            <input
-              type="text"
-              value={currentData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
+          <div className="content-card__header">
+            <h2>{t.currentWindow}</h2>
           </div>
 
-          <div className="field-box field-box--full">
-            <label>{t.description}</label>
-            <textarea
-              rows={5}
-              value={currentData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-            />
-          </div>
+          <div
+            className="fields-grid"
+            style={{
+              width: "100%",
+              maxWidth: "100%",
+            }}
+          >
+            <div className="field-box field-box--full">
+              <label>{t.title}</label>
+              <input
+                type="text"
+                value={currentData.title}
+                onChange={(e) => handleChange("title", e.target.value)}
+              />
+            </div>
 
-          <div className="field-box field-box--full">
-            <label>{t.imageDescription}</label>
-            <textarea
-              rows={3}
-              value={currentData.image_description}
-              onChange={(e) => handleChange("image_description", e.target.value)}
-            />
-          </div>
+            <div className="field-box field-box--full">
+              <label>{t.description}</label>
+              <textarea
+                rows={5}
+                value={currentData.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+              />
+            </div>
 
-          <div className="field-box">
-            <label>{t.experienceNumber}</label>
-            <input
-              type="text"
-              value={currentData.experience_number}
-              onChange={(e) => handleChange("experience_number", e.target.value)}
-            />
-          </div>
+            <div className="field-box field-box--full">
+              <label>{t.imageDescription}</label>
+              <textarea
+                rows={3}
+                value={currentData.image_description}
+                onChange={(e) =>
+                  handleChange("image_description", e.target.value)
+                }
+              />
+            </div>
 
-          <div className="field-box">
-            <label>{t.experienceTitle}</label>
-            <input
-              type="text"
-              value={currentData.experience_title}
-              onChange={(e) => handleChange("experience_title", e.target.value)}
-            />
-          </div>
+            <div className="field-box">
+              <label>{t.experienceNumber}</label>
+              <input
+                type="text"
+                value={currentData.experience_number}
+                onChange={(e) =>
+                  handleChange("experience_number", e.target.value)
+                }
+              />
+            </div>
 
-          <div className="field-box">
-            <label>{t.foundationNumber}</label>
-            <input
-              type="text"
-              value={currentData.foundation_number}
-              onChange={(e) => handleChange("foundation_number", e.target.value)}
-            />
-          </div>
+            <div className="field-box">
+              <label>{t.experienceTitle}</label>
+              <input
+                type="text"
+                value={currentData.experience_title}
+                onChange={(e) =>
+                  handleChange("experience_title", e.target.value)
+                }
+              />
+            </div>
 
-          <div className="field-box">
-            <label>{t.foundationTitle}</label>
-            <input
-              type="text"
-              value={currentData.foundation_title}
-              onChange={(e) => handleChange("foundation_title", e.target.value)}
-            />
+            <div className="field-box">
+              <label>{t.foundationNumber}</label>
+              <input
+                type="text"
+                value={currentData.foundation_number}
+                onChange={(e) =>
+                  handleChange("foundation_number", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="field-box">
+              <label>{t.foundationTitle}</label>
+              <input
+                type="text"
+                value={currentData.foundation_title}
+                onChange={(e) =>
+                  handleChange("foundation_title", e.target.value)
+                }
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {aboutWindow === "chinese" && (
+        <div
+          className="content-card glass-card"
+          style={{
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseWindowTitle}</h2>
+              <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+            </div>
+          </div>
+
+          <div
+            className="fields-grid"
+            style={{
+              width: "100%",
+              maxWidth: "100%",
+            }}
+          >
+            <div className="field-box field-box--full">
+              <label>{t.title} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.title}
+                onChange={(e) => handleChange("title", e.target.value, "zh")}
+              />
+            </div>
+
+            <div className="field-box field-box--full">
+              <label>{t.description} / Chinese</label>
+              <textarea
+                rows={5}
+                value={chineseData.description}
+                onChange={(e) =>
+                  handleChange("description", e.target.value, "zh")
+                }
+              />
+            </div>
+
+            <div className="field-box field-box--full">
+              <label>{t.imageDescription} / Chinese</label>
+              <textarea
+                rows={3}
+                value={chineseData.image_description}
+                onChange={(e) =>
+                  handleChange("image_description", e.target.value, "zh")
+                }
+              />
+            </div>
+
+            <div className="field-box">
+              <label>{t.experienceNumber} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.experience_number}
+                onChange={(e) =>
+                  handleChange("experience_number", e.target.value, "zh")
+                }
+              />
+            </div>
+
+            <div className="field-box">
+              <label>{t.experienceTitle} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.experience_title}
+                onChange={(e) =>
+                  handleChange("experience_title", e.target.value, "zh")
+                }
+              />
+            </div>
+
+            <div className="field-box">
+              <label>{t.foundationNumber} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.foundation_number}
+                onChange={(e) =>
+                  handleChange("foundation_number", e.target.value, "zh")
+                }
+              />
+            </div>
+
+            <div className="field-box">
+              <label>{t.foundationTitle} / Chinese</label>
+              <input
+                type="text"
+                value={chineseData.foundation_title}
+                onChange={(e) =>
+                  handleChange("foundation_title", e.target.value, "zh")
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

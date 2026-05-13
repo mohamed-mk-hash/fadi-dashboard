@@ -13,6 +13,12 @@ const uiText = {
     firestorePath: "siteContent / 0EwrKivcpkYHFidugM5j",
     arContent: "المحتوى العربي",
     enContent: "المحتوى الإنجليزي",
+    zhContent: "المحتوى الصيني",
+    currentWindow: "المحتوى العربي / الإنجليزي",
+    chinese: "الصينية",
+    chineseWindowTitle: "نافذة إضافة محتوى قسم الخبرات بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
     badge: "Badge",
     title: "العنوان",
     description: "الوصف",
@@ -34,13 +40,14 @@ const uiText = {
     saveSuccess: "تم حفظ بيانات قسم الخبرات بنجاح",
     saveError: "حدث خطأ أثناء حفظ بيانات قسم الخبرات",
     validationTopLevel:
-      "يجب تعبئة العنوان والوصف وBadge في العربي والإنجليزي قبل الحفظ.",
+      "يجب تعبئة العنوان والوصف وBadge قبل الحفظ.",
     validationItems:
-      "يجب تعبئة جميع حقول كل عنصر في العربي والإنجليزي قبل الحفظ، وكذلك جميع التاقات.",
+      "يجب تعبئة جميع حقول كل عنصر قبل الحفظ، وكذلك جميع التاقات.",
     validationTagsCount:
       "عدد التاقات في العربي والإنجليزي يجب أن يكون متساويًا داخل كل عنصر.",
     emptyTagPlaceholderAr: "اكتب التاج بالعربية",
     emptyTagPlaceholderEn: "Type tag in English",
+    emptyTagPlaceholderZh: "اكتب التاج بالصينية",
   },
   en: {
     formTitle: "Edit Experience Section",
@@ -49,6 +56,12 @@ const uiText = {
     firestorePath: "siteContent / 0EwrKivcpkYHFidugM5j",
     arContent: "Arabic Content",
     enContent: "English Content",
+    zhContent: "Chinese Content",
+    currentWindow: "Arabic / English Content",
+    chinese: "Chinese",
+    chineseWindowTitle: "Chinese Experience Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
     badge: "Badge",
     title: "Title",
     description: "Description",
@@ -70,13 +83,14 @@ const uiText = {
     saveSuccess: "Experience section saved successfully",
     saveError: "Error saving experience section data",
     validationTopLevel:
-      "Badge, title, and description must be filled in both Arabic and English before saving.",
+      "Badge, title, and description must be filled before saving.",
     validationItems:
-      "All fields for every item must be completed in both Arabic and English before saving, including all tags.",
+      "All fields for every item must be completed before saving, including all tags.",
     validationTagsCount:
       "Arabic and English tag counts must match inside each item.",
     emptyTagPlaceholderAr: "Type tag in Arabic",
     emptyTagPlaceholderEn: "Type tag in English",
+    emptyTagPlaceholderZh: "Type tag in Chinese",
   },
 };
 
@@ -88,9 +102,10 @@ const createEmptyLangItem = () => ({
   tags: [""],
 });
 
-const createEmptyBilingualItem = () => ({
+const createEmptyMultilingualItem = () => ({
   ar: createEmptyLangItem(),
   en: createEmptyLangItem(),
+  zh: createEmptyLangItem(),
 });
 
 const defaultExperienceData = {
@@ -104,7 +119,12 @@ const defaultExperienceData = {
     title: "",
     description: "",
   },
-  items: [createEmptyBilingualItem()],
+  zh: {
+    badge: "",
+    title: "",
+    description: "",
+  },
+  items: [createEmptyMultilingualItem()],
 };
 
 function normalizeLangTopLevel(data = {}) {
@@ -129,13 +149,22 @@ function normalizeLangItems(items) {
   }));
 }
 
-function mergeBilingualItems(arItems, enItems) {
-  const maxLength = Math.max(arItems.length, enItems.length, 1);
+function mergeMultilingualItems(arItems, enItems, zhItems) {
+  const maxLength = Math.max(arItems.length, enItems.length, zhItems.length, 1);
 
   return Array.from({ length: maxLength }, (_, index) => ({
     ar: arItems[index] || createEmptyLangItem(),
     en: enItems[index] || createEmptyLangItem(),
+    zh: zhItems[index] || createEmptyLangItem(),
   }));
+}
+
+function trimLangTopLevel(data) {
+  return {
+    badge: data.badge.trim(),
+    title: data.title.trim(),
+    description: data.description.trim(),
+  };
 }
 
 function trimLangItem(item) {
@@ -148,15 +177,12 @@ function trimLangItem(item) {
   };
 }
 
-function isTopLevelComplete(data) {
-  return (
-    data.ar.badge.trim() &&
-    data.ar.title.trim() &&
-    data.ar.description.trim() &&
-    data.en.badge.trim() &&
-    data.en.title.trim() &&
-    data.en.description.trim()
-  );
+function isSingleTopLevelComplete(data) {
+  return data.badge.trim() && data.title.trim() && data.description.trim();
+}
+
+function isBilingualTopLevelComplete(data) {
+  return isSingleTopLevelComplete(data.ar) && isSingleTopLevelComplete(data.en);
 }
 
 function isLangItemComplete(item) {
@@ -187,9 +213,22 @@ function validateBilingualItems(items) {
   return { valid: true };
 }
 
+function validateSingleLanguageItems(items, language) {
+  for (const rawItem of items) {
+    const item = trimLangItem(rawItem[language]);
+
+    if (!isLangItemComplete(item)) {
+      return { valid: false, reason: "items_required" };
+    }
+  }
+
+  return { valid: true };
+}
+
 export default function ExperienceSectionEditor({ lang = "ar", user }) {
   const t = uiText[lang];
 
+  const [experienceWindow, setExperienceWindow] = useState("default");
   const [formData, setFormData] = useState(defaultExperienceData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -201,11 +240,8 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
   }, []);
 
   const saveDisabled = useMemo(() => {
-    if (saving || loading) return true;
-    if (!isTopLevelComplete(formData)) return true;
-    const validation = validateBilingualItems(formData.items);
-    return !validation.valid;
-  }, [formData, saving, loading]);
+    return saving || loading;
+  }, [saving, loading]);
 
   const fetchExperienceData = async () => {
     try {
@@ -220,13 +256,17 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
 
         const arTopLevel = normalizeLangTopLevel(data?.ar || {});
         const enTopLevel = normalizeLangTopLevel(data?.en || {});
+        const zhTopLevel = normalizeLangTopLevel(data?.zh || {});
+
         const arItems = normalizeLangItems(data?.ar?.items);
         const enItems = normalizeLangItems(data?.en?.items);
+        const zhItems = normalizeLangItems(data?.zh?.items);
 
         setFormData({
           ar: arTopLevel,
           en: enTopLevel,
-          items: mergeBilingualItems(arItems, enItems),
+          zh: zhTopLevel,
+          items: mergeMultilingualItems(arItems, enItems, zhItems),
         });
       } else {
         await setDoc(docRef, {
@@ -237,6 +277,12 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
             items: [],
           },
           en: {
+            badge: "",
+            title: "",
+            description: "",
+            items: [],
+          },
+          zh: {
             badge: "",
             title: "",
             description: "",
@@ -267,6 +313,7 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
   const handleItemFieldChange = (itemIndex, language, field, value) => {
     setFormData((prev) => {
       const updatedItems = [...prev.items];
+
       updatedItems[itemIndex] = {
         ...updatedItems[itemIndex],
         [language]: {
@@ -286,6 +333,7 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
     setFormData((prev) => {
       const updatedItems = [...prev.items];
       const updatedTags = [...updatedItems[itemIndex][language].tags];
+
       updatedTags[tagIndex] = value;
 
       updatedItems[itemIndex] = {
@@ -306,7 +354,7 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
   const addItem = () => {
     setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, createEmptyBilingualItem()],
+      items: [...prev.items, createEmptyMultilingualItem()],
     }));
   };
 
@@ -316,24 +364,36 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
 
       return {
         ...prev,
-        items: updatedItems.length > 0 ? updatedItems : [createEmptyBilingualItem()],
+        items: updatedItems.length > 0 ? updatedItems : [createEmptyMultilingualItem()],
       };
     });
   };
 
-  const addTag = (itemIndex) => {
+  const addTag = (itemIndex, language = "default") => {
     setFormData((prev) => {
       const updatedItems = [...prev.items];
-      updatedItems[itemIndex] = {
-        ar: {
-          ...updatedItems[itemIndex].ar,
-          tags: [...updatedItems[itemIndex].ar.tags, ""],
-        },
-        en: {
-          ...updatedItems[itemIndex].en,
-          tags: [...updatedItems[itemIndex].en.tags, ""],
-        },
-      };
+
+      if (language === "zh") {
+        updatedItems[itemIndex] = {
+          ...updatedItems[itemIndex],
+          zh: {
+            ...updatedItems[itemIndex].zh,
+            tags: [...updatedItems[itemIndex].zh.tags, ""],
+          },
+        };
+      } else {
+        updatedItems[itemIndex] = {
+          ...updatedItems[itemIndex],
+          ar: {
+            ...updatedItems[itemIndex].ar,
+            tags: [...updatedItems[itemIndex].ar.tags, ""],
+          },
+          en: {
+            ...updatedItems[itemIndex].en,
+            tags: [...updatedItems[itemIndex].en.tags, ""],
+          },
+        };
+      }
 
       return {
         ...prev,
@@ -342,67 +402,72 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
     });
   };
 
-  const deleteTag = (itemIndex, tagIndex) => {
+  const deleteTag = (itemIndex, tagIndex, language = "default") => {
     setFormData((prev) => {
       const updatedItems = [...prev.items];
 
-      const nextArTags = updatedItems[itemIndex].ar.tags.filter((_, i) => i !== tagIndex);
-      const nextEnTags = updatedItems[itemIndex].en.tags.filter((_, i) => i !== tagIndex);
+      if (language === "zh") {
+        const nextZhTags = updatedItems[itemIndex].zh.tags.filter(
+          (_, i) => i !== tagIndex
+        );
 
-      updatedItems[itemIndex] = {
-        ar: {
-          ...updatedItems[itemIndex].ar,
-          tags: nextArTags.length > 0 ? nextArTags : [""],
-        },
-        en: {
-          ...updatedItems[itemIndex].en,
-          tags: nextEnTags.length > 0 ? nextEnTags : [""],
-        },
-      };
+        updatedItems[itemIndex] = {
+          ...updatedItems[itemIndex],
+          zh: {
+            ...updatedItems[itemIndex].zh,
+            tags: nextZhTags.length > 0 ? nextZhTags : [""],
+          },
+        };
+      } else {
+        const nextArTags = updatedItems[itemIndex].ar.tags.filter(
+          (_, i) => i !== tagIndex
+        );
+        const nextEnTags = updatedItems[itemIndex].en.tags.filter(
+          (_, i) => i !== tagIndex
+        );
+
+        updatedItems[itemIndex] = {
+          ...updatedItems[itemIndex],
+          ar: {
+            ...updatedItems[itemIndex].ar,
+            tags: nextArTags.length > 0 ? nextArTags : [""],
+          },
+          en: {
+            ...updatedItems[itemIndex].en,
+            tags: nextEnTags.length > 0 ? nextEnTags : [""],
+          },
+        };
+      }
 
       return {
         ...prev,
         items: updatedItems,
       };
     });
+  };
+
+  const buildLangPayload = (language) => {
+    return {
+      ...trimLangTopLevel(formData[language]),
+      items: formData.items.map((item) => {
+        const trimmed = trimLangItem(item[language]);
+
+        return {
+          company: trimmed.company,
+          role: trimmed.role,
+          period: trimmed.period,
+          description: trimmed.description,
+          tags: trimmed.tags,
+        };
+      }),
+    };
   };
 
   const buildPayload = () => {
-    const arItems = formData.items.map((item) => {
-      const trimmed = trimLangItem(item.ar);
-      return {
-        company: trimmed.company,
-        role: trimmed.role,
-        period: trimmed.period,
-        description: trimmed.description,
-        tags: trimmed.tags,
-      };
-    });
-
-    const enItems = formData.items.map((item) => {
-      const trimmed = trimLangItem(item.en);
-      return {
-        company: trimmed.company,
-        role: trimmed.role,
-        period: trimmed.period,
-        description: trimmed.description,
-        tags: trimmed.tags,
-      };
-    });
-
     return {
-      ar: {
-        badge: formData.ar.badge.trim(),
-        title: formData.ar.title.trim(),
-        description: formData.ar.description.trim(),
-        items: arItems,
-      },
-      en: {
-        badge: formData.en.badge.trim(),
-        title: formData.en.title.trim(),
-        description: formData.en.description.trim(),
-        items: enItems,
-      },
+      ar: buildLangPayload("ar"),
+      en: buildLangPayload("en"),
+      zh: buildLangPayload("zh"),
       updatedAt: serverTimestamp(),
       updatedBy: user?.email || "unknown",
     };
@@ -414,22 +479,40 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
       setMessage("");
       setError("");
 
-      if (!isTopLevelComplete(formData)) {
-        setError(t.validationTopLevel);
-        setSaving(false);
-        return;
+      if (experienceWindow === "default") {
+        if (!isBilingualTopLevelComplete(formData)) {
+          setError(t.validationTopLevel);
+          setSaving(false);
+          return;
+        }
+
+        const validation = validateBilingualItems(formData.items);
+
+        if (!validation.valid) {
+          setError(
+            validation.reason === "tags_count"
+              ? t.validationTagsCount
+              : t.validationItems
+          );
+          setSaving(false);
+          return;
+        }
       }
 
-      const validation = validateBilingualItems(formData.items);
+      if (experienceWindow === "chinese") {
+        if (!isSingleTopLevelComplete(formData.zh)) {
+          setError(t.validationTopLevel);
+          setSaving(false);
+          return;
+        }
 
-      if (!validation.valid) {
-        setError(
-          validation.reason === "tags_count"
-            ? t.validationTagsCount
-            : t.validationItems
-        );
-        setSaving(false);
-        return;
+        const validation = validateSingleLanguageItems(formData.items, "zh");
+
+        if (!validation.valid) {
+          setError(t.validationItems);
+          setSaving(false);
+          return;
+        }
       }
 
       const docRef = doc(db, CONTENT_COLLECTION, CONTENT_DOC_ID);
@@ -494,289 +577,603 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
           </p>
         </div>
 
-        <div className="editor-header__actions">
+        <div
+          className="editor-header__actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="language-switch">
+            <button
+              type="button"
+              className={experienceWindow === "default" ? "active" : ""}
+              onClick={() => setExperienceWindow("default")}
+            >
+              {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+            </button>
+
+            <button
+              type="button"
+              className={experienceWindow === "chinese" ? "active" : ""}
+              onClick={() => setExperienceWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+
           <button
             className="admin-btn admin-btn--primary"
             onClick={handleSave}
             disabled={saveDisabled}
-            title={saveDisabled ? t.validationItems : ""}
           >
             {saving ? t.saving : t.save}
           </button>
         </div>
       </div>
 
-      <div
-        className="content-card glass-card"
-        style={{ width: "100%", maxWidth: "100%" }}
-      >
-        <div className="content-card__header">
-          <h2>{t.formTitle}</h2>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
-          }}
-        >
-          <div className="glass-card" style={{ padding: "20px" }}>
-            <h3 style={{ marginTop: 0, marginBottom: "16px" }}>{t.arContent}</h3>
-
-            <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
-              <div className="field-box">
-                <label>{t.badge}</label>
-                <input
-                  type="text"
-                  value={formData.ar.badge}
-                  onChange={(e) => handleTopLevelChange("ar", "badge", e.target.value)}
-                />
-              </div>
-
-              <div className="field-box field-box--full">
-                <label>{t.title}</label>
-                <input
-                  type="text"
-                  value={formData.ar.title}
-                  onChange={(e) => handleTopLevelChange("ar", "title", e.target.value)}
-                />
-              </div>
-
-              <div className="field-box field-box--full">
-                <label>{t.description}</label>
-                <textarea
-                  rows={5}
-                  value={formData.ar.description}
-                  onChange={(e) =>
-                    handleTopLevelChange("ar", "description", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card" style={{ padding: "20px" }}>
-            <h3 style={{ marginTop: 0, marginBottom: "16px" }}>{t.enContent}</h3>
-
-            <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
-              <div className="field-box">
-                <label>{t.badge}</label>
-                <input
-                  type="text"
-                  value={formData.en.badge}
-                  onChange={(e) => handleTopLevelChange("en", "badge", e.target.value)}
-                />
-              </div>
-
-              <div className="field-box field-box--full">
-                <label>{t.title}</label>
-                <input
-                  type="text"
-                  value={formData.en.title}
-                  onChange={(e) => handleTopLevelChange("en", "title", e.target.value)}
-                />
-              </div>
-
-              <div className="field-box field-box--full">
-                <label>{t.description}</label>
-                <textarea
-                  rows={5}
-                  value={formData.en.description}
-                  onChange={(e) =>
-                    handleTopLevelChange("en", "description", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="content-card glass-card"
-        style={{ width: "100%", maxWidth: "100%", marginTop: "20px" }}
-      >
-        <div
-          className="content-card__header"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
-          <h2>{t.itemsTitle}</h2>
-
-          <button
-            type="button"
-            className="admin-btn admin-btn--primary"
-            onClick={addItem}
+      {experienceWindow === "default" && (
+        <>
+          <div
+            className="content-card glass-card"
+            style={{ width: "100%", maxWidth: "100%" }}
           >
-            {t.addItem}
-          </button>
-        </div>
+            <div className="content-card__header">
+              <h2>{t.currentWindow}</h2>
+            </div>
 
-        <div style={{ display: "grid", gap: "20px" }}>
-          {formData.items.map((item, index) => (
             <div
-              key={index}
-              className="glass-card"
               style={{
-                padding: "20px",
-                border: "1px solid rgba(255,255,255,0.12)",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "20px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <h3 style={{ margin: 0 }}>
-                  {t.itemNumber} {index + 1}
+              <div className="glass-card" style={{ padding: "20px" }}>
+                <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
+                  {t.arContent}
                 </h3>
 
-                <button
-                  type="button"
-                  className="admin-btn admin-btn--ghost"
-                  onClick={() => deleteItem(index)}
-                >
-                  {t.deleteItem}
-                </button>
+                <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                  <div className="field-box">
+                    <label>{t.badge}</label>
+                    <input
+                      type="text"
+                      value={formData.ar.badge}
+                      onChange={(e) =>
+                        handleTopLevelChange("ar", "badge", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="field-box field-box--full">
+                    <label>{t.title}</label>
+                    <input
+                      type="text"
+                      value={formData.ar.title}
+                      onChange={(e) =>
+                        handleTopLevelChange("ar", "title", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="field-box field-box--full">
+                    <label>{t.description}</label>
+                    <textarea
+                      rows={5}
+                      value={formData.ar.description}
+                      onChange={(e) =>
+                        handleTopLevelChange("ar", "description", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "20px",
-                }}
+              <div className="glass-card" style={{ padding: "20px" }}>
+                <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
+                  {t.enContent}
+                </h3>
+
+                <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                  <div className="field-box">
+                    <label>{t.badge}</label>
+                    <input
+                      type="text"
+                      value={formData.en.badge}
+                      onChange={(e) =>
+                        handleTopLevelChange("en", "badge", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="field-box field-box--full">
+                    <label>{t.title}</label>
+                    <input
+                      type="text"
+                      value={formData.en.title}
+                      onChange={(e) =>
+                        handleTopLevelChange("en", "title", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="field-box field-box--full">
+                    <label>{t.description}</label>
+                    <textarea
+                      rows={5}
+                      value={formData.en.description}
+                      onChange={(e) =>
+                        handleTopLevelChange("en", "description", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="content-card glass-card"
+            style={{ width: "100%", maxWidth: "100%", marginTop: "20px" }}
+          >
+            <div
+              className="content-card__header"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <h2>{t.itemsTitle}</h2>
+
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                onClick={addItem}
               >
-                <div className="glass-card" style={{ padding: "16px" }}>
-                  <h4 style={{ marginTop: 0, marginBottom: "16px" }}>{t.arContent}</h4>
+                {t.addItem}
+              </button>
+            </div>
 
-                  <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
-                    <div className="field-box">
-                      <label>{t.company}</label>
-                      <input
-                        type="text"
-                        value={item.ar.company}
-                        onChange={(e) =>
-                          handleItemFieldChange(index, "ar", "company", e.target.value)
-                        }
-                      />
-                    </div>
+            <div style={{ display: "grid", gap: "20px" }}>
+              {formData.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="glass-card"
+                  style={{
+                    padding: "20px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "16px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <h3 style={{ margin: 0 }}>
+                      {t.itemNumber} {index + 1}
+                    </h3>
 
-                    <div className="field-box">
-                      <label>{t.role}</label>
-                      <input
-                        type="text"
-                        value={item.ar.role}
-                        onChange={(e) =>
-                          handleItemFieldChange(index, "ar", "role", e.target.value)
-                        }
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--ghost"
+                      onClick={() => deleteItem(index)}
+                    >
+                      {t.deleteItem}
+                    </button>
+                  </div>
 
-                    <div className="field-box field-box--full">
-                      <label>{t.period}</label>
-                      <input
-                        type="text"
-                        value={item.ar.period}
-                        onChange={(e) =>
-                          handleItemFieldChange(index, "ar", "period", e.target.value)
-                        }
-                      />
-                    </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "20px",
+                    }}
+                  >
+                    <div className="glass-card" style={{ padding: "16px" }}>
+                      <h4 style={{ marginTop: 0, marginBottom: "16px" }}>
+                        {t.arContent}
+                      </h4>
 
-                    <div className="field-box field-box--full">
-                      <label>{t.itemDescription}</label>
-                      <textarea
-                        rows={5}
-                        value={item.ar.description}
-                        onChange={(e) =>
-                          handleItemFieldChange(
-                            index,
-                            "ar",
-                            "description",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-
-                    <div className="field-box field-box--full">
-                      <label>{t.tags}</label>
-
-                      <div style={{ display: "grid", gap: "10px" }}>
-                        {item.ar.tags.map((tag, tagIndex) => (
+                      <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                        <div className="field-box">
+                          <label>{t.company}</label>
                           <input
-                            key={tagIndex}
                             type="text"
-                            value={tag}
-                            placeholder={t.emptyTagPlaceholderAr}
+                            value={item.ar.company}
                             onChange={(e) =>
-                              handleTagChange(index, "ar", tagIndex, e.target.value)
+                              handleItemFieldChange(
+                                index,
+                                "ar",
+                                "company",
+                                e.target.value
+                              )
                             }
                           />
-                        ))}
+                        </div>
+
+                        <div className="field-box">
+                          <label>{t.role}</label>
+                          <input
+                            type="text"
+                            value={item.ar.role}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "ar",
+                                "role",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box field-box--full">
+                          <label>{t.period}</label>
+                          <input
+                            type="text"
+                            value={item.ar.period}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "ar",
+                                "period",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box field-box--full">
+                          <label>{t.itemDescription}</label>
+                          <textarea
+                            rows={5}
+                            value={item.ar.description}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "ar",
+                                "description",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box field-box--full">
+                          <label>{t.tags}</label>
+
+                          <div style={{ display: "grid", gap: "10px" }}>
+                            {item.ar.tags.map((tag, tagIndex) => (
+                              <input
+                                key={tagIndex}
+                                type="text"
+                                value={tag}
+                                placeholder={t.emptyTagPlaceholderAr}
+                                onChange={(e) =>
+                                  handleTagChange(
+                                    index,
+                                    "ar",
+                                    tagIndex,
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: "16px" }}>
+                      <h4 style={{ marginTop: 0, marginBottom: "16px" }}>
+                        {t.enContent}
+                      </h4>
+
+                      <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                        <div className="field-box">
+                          <label>{t.company}</label>
+                          <input
+                            type="text"
+                            value={item.en.company}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "en",
+                                "company",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box">
+                          <label>{t.role}</label>
+                          <input
+                            type="text"
+                            value={item.en.role}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "en",
+                                "role",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box field-box--full">
+                          <label>{t.period}</label>
+                          <input
+                            type="text"
+                            value={item.en.period}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "en",
+                                "period",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box field-box--full">
+                          <label>{t.itemDescription}</label>
+                          <textarea
+                            rows={5}
+                            value={item.en.description}
+                            onChange={(e) =>
+                              handleItemFieldChange(
+                                index,
+                                "en",
+                                "description",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="field-box field-box--full">
+                          <label>{t.tags}</label>
+
+                          <div style={{ display: "grid", gap: "10px" }}>
+                            {item.en.tags.map((tag, tagIndex) => (
+                              <div
+                                key={tagIndex}
+                                style={{
+                                  display: "flex",
+                                  gap: "10px",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <input
+                                  type="text"
+                                  value={tag}
+                                  placeholder={t.emptyTagPlaceholderEn}
+                                  onChange={(e) =>
+                                    handleTagChange(
+                                      index,
+                                      "en",
+                                      tagIndex,
+                                      e.target.value
+                                    )
+                                  }
+                                  style={{ flex: 1 }}
+                                />
+
+                                <button
+                                  type="button"
+                                  className="admin-btn admin-btn--ghost"
+                                  onClick={() => deleteTag(index, tagIndex)}
+                                >
+                                  {t.deleteTag}
+                                </button>
+                              </div>
+                            ))}
+
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn--primary"
+                              onClick={() => addTag(index)}
+                              style={{ width: "fit-content" }}
+                            >
+                              {t.addTag}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
-                <div className="glass-card" style={{ padding: "16px" }}>
-                  <h4 style={{ marginTop: 0, marginBottom: "16px" }}>{t.enContent}</h4>
+      {experienceWindow === "chinese" && (
+        <>
+          <div
+            className="content-card glass-card"
+            style={{ width: "100%", maxWidth: "100%" }}
+          >
+            <div className="content-card__header">
+              <div>
+                <h2>{t.chineseWindowTitle}</h2>
+                <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+              </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: "20px" }}>
+              <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
+                {t.zhContent}
+              </h3>
+
+              <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                <div className="field-box">
+                  <label>{t.badge} / Chinese</label>
+                  <input
+                    type="text"
+                    value={formData.zh.badge}
+                    onChange={(e) =>
+                      handleTopLevelChange("zh", "badge", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field-box field-box--full">
+                  <label>{t.title} / Chinese</label>
+                  <input
+                    type="text"
+                    value={formData.zh.title}
+                    onChange={(e) =>
+                      handleTopLevelChange("zh", "title", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="field-box field-box--full">
+                  <label>{t.description} / Chinese</label>
+                  <textarea
+                    rows={5}
+                    value={formData.zh.description}
+                    onChange={(e) =>
+                      handleTopLevelChange("zh", "description", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="content-card glass-card"
+            style={{ width: "100%", maxWidth: "100%", marginTop: "20px" }}
+          >
+            <div
+              className="content-card__header"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <h2>{t.itemsTitle} / Chinese</h2>
+
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                onClick={addItem}
+              >
+                {t.addItem}
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: "20px" }}>
+              {formData.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="glass-card"
+                  style={{
+                    padding: "20px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "16px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <h3 style={{ margin: 0 }}>
+                      {t.itemNumber} {index + 1} / Chinese
+                    </h3>
+
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--ghost"
+                      onClick={() => deleteItem(index)}
+                    >
+                      {t.deleteItem}
+                    </button>
+                  </div>
 
                   <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
                     <div className="field-box">
-                      <label>{t.company}</label>
+                      <label>{t.company} / Chinese</label>
                       <input
                         type="text"
-                        value={item.en.company}
+                        value={item.zh.company}
                         onChange={(e) =>
-                          handleItemFieldChange(index, "en", "company", e.target.value)
+                          handleItemFieldChange(
+                            index,
+                            "zh",
+                            "company",
+                            e.target.value
+                          )
                         }
                       />
                     </div>
 
                     <div className="field-box">
-                      <label>{t.role}</label>
+                      <label>{t.role} / Chinese</label>
                       <input
                         type="text"
-                        value={item.en.role}
-                        onChange={(e) =>
-                          handleItemFieldChange(index, "en", "role", e.target.value)
-                        }
-                      />
-                    </div>
-
-                    <div className="field-box field-box--full">
-                      <label>{t.period}</label>
-                      <input
-                        type="text"
-                        value={item.en.period}
-                        onChange={(e) =>
-                          handleItemFieldChange(index, "en", "period", e.target.value)
-                        }
-                      />
-                    </div>
-
-                    <div className="field-box field-box--full">
-                      <label>{t.itemDescription}</label>
-                      <textarea
-                        rows={5}
-                        value={item.en.description}
+                        value={item.zh.role}
                         onChange={(e) =>
                           handleItemFieldChange(
                             index,
-                            "en",
+                            "zh",
+                            "role",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="field-box field-box--full">
+                      <label>{t.period} / Chinese</label>
+                      <input
+                        type="text"
+                        value={item.zh.period}
+                        onChange={(e) =>
+                          handleItemFieldChange(
+                            index,
+                            "zh",
+                            "period",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="field-box field-box--full">
+                      <label>{t.itemDescription} / Chinese</label>
+                      <textarea
+                        rows={5}
+                        value={item.zh.description}
+                        onChange={(e) =>
+                          handleItemFieldChange(
+                            index,
+                            "zh",
                             "description",
                             e.target.value
                           )
@@ -785,10 +1182,10 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
                     </div>
 
                     <div className="field-box field-box--full">
-                      <label>{t.tags}</label>
+                      <label>{t.tags} / Chinese</label>
 
                       <div style={{ display: "grid", gap: "10px" }}>
-                        {item.en.tags.map((tag, tagIndex) => (
+                        {item.zh.tags.map((tag, tagIndex) => (
                           <div
                             key={tagIndex}
                             style={{
@@ -800,9 +1197,14 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
                             <input
                               type="text"
                               value={tag}
-                              placeholder={t.emptyTagPlaceholderEn}
+                              placeholder={t.emptyTagPlaceholderZh}
                               onChange={(e) =>
-                                handleTagChange(index, "en", tagIndex, e.target.value)
+                                handleTagChange(
+                                  index,
+                                  "zh",
+                                  tagIndex,
+                                  e.target.value
+                                )
                               }
                               style={{ flex: 1 }}
                             />
@@ -810,7 +1212,7 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
                             <button
                               type="button"
                               className="admin-btn admin-btn--ghost"
-                              onClick={() => deleteTag(index, tagIndex)}
+                              onClick={() => deleteTag(index, tagIndex, "zh")}
                             >
                               {t.deleteTag}
                             </button>
@@ -820,7 +1222,7 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
                         <button
                           type="button"
                           className="admin-btn admin-btn--primary"
-                          onClick={() => addTag(index)}
+                          onClick={() => addTag(index, "zh")}
                           style={{ width: "fit-content" }}
                         >
                           {t.addTag}
@@ -829,11 +1231,11 @@ export default function ExperienceSectionEditor({ lang = "ar", user }) {
                     </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

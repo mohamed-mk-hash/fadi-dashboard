@@ -2,68 +2,95 @@ import React, { useEffect, useState } from "react";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 
-const disciplineUiText = {
+const alNassajUiText = {
   ar: {
-    formTitle: "تعديل محتوى قسم الانضباط",
-    sectionTitle: "قسم الانضباط",
+    formTitle: "تعديل محتوى النساج",
+    sectionTitle: "قسم النساج",
     firestoreInfo: "المسار المستخدم في Firebase",
-    firestorePath: "siteContent / discipline",
+    firestorePath: "siteContent / Al-Nassaj",
+
+    arabicEnglish: "العربي / الإنجليزي",
+    chinese: "الصينية",
+    currentWindow: "محتوى القسم الحالي",
+    chineseWindowTitle: "نافذة إضافة محتوى النساج بالصينية",
+    chineseWindowDesc:
+      "هذه النافذة لا تغيّر لغة لوحة التحكم، فقط تضيف محتوى صينيًا داخل نفس وثيقة Firebase.",
+
+    badge: "Badge",
     title: "العنوان",
     description: "الوصف",
+    buttonText: "نص الزر",
+
     save: "حفظ التعديلات",
     saving: "جارٍ الحفظ...",
     loading: "جارٍ تحميل البيانات...",
-    fetchError: "حدث خطأ أثناء تحميل بيانات قسم الانضباط",
-    saveSuccess: "تم حفظ بيانات قسم الانضباط بنجاح",
-    saveError: "حدث خطأ أثناء حفظ بيانات قسم الانضباط",
+    fetchError: "حدث خطأ أثناء تحميل بيانات قسم النساج",
+    saveSuccess: "تم حفظ بيانات قسم النساج بنجاح",
+    saveError: "حدث خطأ أثناء حفظ بيانات قسم النساج",
   },
+
   en: {
-    formTitle: "Edit Discipline Section Content",
-    sectionTitle: "Discipline Section",
+    formTitle: "Edit Al-Nassaj Content",
+    sectionTitle: "Al-Nassaj Section",
     firestoreInfo: "Firebase path used",
-    firestorePath: "siteContent / discipline",
+    firestorePath: "siteContent / Al-Nassaj",
+
+    arabicEnglish: "AR / EN",
+    chinese: "Chinese",
+    currentWindow: "Current Section Content",
+    chineseWindowTitle: "Chinese Al-Nassaj Content Window",
+    chineseWindowDesc:
+      "This window does not change the dashboard language. It only adds Chinese content to the same Firebase document.",
+
+    badge: "Badge",
     title: "Title",
     description: "Description",
+    buttonText: "Button Text",
+
     save: "Save Changes",
     saving: "Saving...",
     loading: "Loading data...",
-    fetchError: "Error loading discipline section data",
-    saveSuccess: "Discipline section saved successfully",
-    saveError: "Error saving discipline section data",
+    fetchError: "Error loading Al-Nassaj section data",
+    saveSuccess: "Al-Nassaj section saved successfully",
+    saveError: "Error saving Al-Nassaj section data",
   },
 };
 
-const defaultDisciplineData = {
-  ar: {
-    title: "",
-    description: "",
-  },
-  en: {
-    title: "",
-    description: "",
-  },
+const emptyAlNassajLanguageData = {
+  badge: "",
+  title: "",
+  description: "",
+  button_text: "",
+};
+
+const defaultAlNassajData = {
+  ar: { ...emptyAlNassajLanguageData },
+  en: { ...emptyAlNassajLanguageData },
+  zh: { ...emptyAlNassajLanguageData },
 };
 
 export default function DisciplineSectionEditor({ lang = "ar", user }) {
-  const [formData, setFormData] = useState(defaultDisciplineData);
+  const [alNassajWindow, setAlNassajWindow] = useState("default");
+  const [formData, setFormData] = useState(defaultAlNassajData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const t = disciplineUiText[lang];
-  const currentData = formData[lang];
+  const t = alNassajUiText[lang] || alNassajUiText.ar;
+  const currentData = formData[lang] || emptyAlNassajLanguageData;
+  const chineseData = formData.zh || emptyAlNassajLanguageData;
 
   useEffect(() => {
-    fetchDisciplineData();
+    fetchAlNassajData();
   }, []);
 
-  const fetchDisciplineData = async () => {
+  const fetchAlNassajData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const docRef = doc(db, "siteContent", "discipline");
+      const docRef = doc(db, "siteContent", "Al-Nassaj");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -71,31 +98,35 @@ export default function DisciplineSectionEditor({ lang = "ar", user }) {
 
         setFormData({
           ar: {
-            ...defaultDisciplineData.ar,
+            ...defaultAlNassajData.ar,
             ...(data.ar || {}),
           },
           en: {
-            ...defaultDisciplineData.en,
+            ...defaultAlNassajData.en,
             ...(data.en || {}),
+          },
+          zh: {
+            ...defaultAlNassajData.zh,
+            ...(data.zh || {}),
           },
         });
       } else {
-        await setDoc(docRef, defaultDisciplineData);
-        setFormData(defaultDisciplineData);
+        await setDoc(docRef, defaultAlNassajData);
+        setFormData(defaultAlNassajData);
       }
     } catch (err) {
-      console.error("Error fetching discipline data:", err);
+      console.error("Error fetching Al-Nassaj data:", err);
       setError(t.fetchError);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value, targetLang = lang) => {
     setFormData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyAlNassajLanguageData),
         [field]: value,
       },
     }));
@@ -107,12 +138,14 @@ export default function DisciplineSectionEditor({ lang = "ar", user }) {
       setMessage("");
       setError("");
 
-      const docRef = doc(db, "siteContent", "discipline");
+      const docRef = doc(db, "siteContent", "Al-Nassaj");
 
       await setDoc(
         docRef,
         {
-          ...formData,
+          ar: formData.ar || defaultAlNassajData.ar,
+          en: formData.en || defaultAlNassajData.en,
+          zh: formData.zh || defaultAlNassajData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -121,7 +154,7 @@ export default function DisciplineSectionEditor({ lang = "ar", user }) {
 
       setMessage(t.saveSuccess);
     } catch (err) {
-      console.error("Error saving discipline data:", err);
+      console.error("Error saving Al-Nassaj data:", err);
       setError(t.saveError);
     } finally {
       setSaving(false);
@@ -132,6 +165,68 @@ export default function DisciplineSectionEditor({ lang = "ar", user }) {
       }, 3000);
     }
   };
+
+  const renderFields = (data, targetLang = lang, suffix = "") => (
+    <div
+      className="fields-grid"
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+      }}
+    >
+      <div className="field-box">
+        <label>
+          {t.badge}
+          {suffix}
+        </label>
+        <input
+          type="text"
+          value={data.badge || ""}
+          onChange={(e) => handleChange("badge", e.target.value, targetLang)}
+        />
+      </div>
+
+      <div className="field-box field-box--full">
+        <label>
+          {t.title}
+          {suffix}
+        </label>
+        <input
+          type="text"
+          value={data.title || ""}
+          onChange={(e) => handleChange("title", e.target.value, targetLang)}
+        />
+      </div>
+
+      <div className="field-box field-box--full">
+        <label>
+          {t.description}
+          {suffix}
+        </label>
+        <textarea
+          rows={5}
+          value={data.description || ""}
+          onChange={(e) =>
+            handleChange("description", e.target.value, targetLang)
+          }
+        />
+      </div>
+
+      <div className="field-box field-box--full">
+        <label>
+          {t.buttonText}
+          {suffix}
+        </label>
+        <input
+          type="text"
+          value={data.button_text || ""}
+          onChange={(e) =>
+            handleChange("button_text", e.target.value, targetLang)
+          }
+        />
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -180,7 +275,33 @@ export default function DisciplineSectionEditor({ lang = "ar", user }) {
           </p>
         </div>
 
-        <div className="editor-header__actions">
+        <div
+          className="editor-header__actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="language-switch">
+            <button
+              type="button"
+              className={alNassajWindow === "default" ? "active" : ""}
+              onClick={() => setAlNassajWindow("default")}
+            >
+              {t.arabicEnglish}
+            </button>
+
+            <button
+              type="button"
+              className={alNassajWindow === "chinese" ? "active" : ""}
+              onClick={() => setAlNassajWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+
           <button
             className="admin-btn admin-btn--primary"
             onClick={handleSave}
@@ -191,43 +312,40 @@ export default function DisciplineSectionEditor({ lang = "ar", user }) {
         </div>
       </div>
 
-      <div
-        className="content-card glass-card"
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-        }}
-      >
-        <div className="content-card__header">
-          <h2>{t.formTitle}</h2>
-        </div>
-
+      {alNassajWindow === "default" && (
         <div
-          className="fields-grid"
+          className="content-card glass-card"
           style={{
             width: "100%",
             maxWidth: "100%",
           }}
         >
-          <div className="field-box field-box--full">
-            <label>{t.title}</label>
-            <input
-              type="text"
-              value={currentData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
+          <div className="content-card__header">
+            <h2>{t.currentWindow}</h2>
           </div>
 
-          <div className="field-box field-box--full">
-            <label>{t.description}</label>
-            <textarea
-              rows={5}
-              value={currentData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-            />
-          </div>
+          {renderFields(currentData)}
         </div>
-      </div>
+      )}
+
+      {alNassajWindow === "chinese" && (
+        <div
+          className="content-card glass-card"
+          style={{
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseWindowTitle}</h2>
+              <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+            </div>
+          </div>
+
+          {renderFields(chineseData, "zh", " / Chinese")}
+        </div>
+      )}
     </div>
   );
 }

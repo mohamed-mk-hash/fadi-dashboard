@@ -11,6 +11,7 @@ const successStoriesUiText = {
 
     arabic: "العربية",
     english: "الإنجليزية",
+    chinese: "الصينية",
 
     title: "العنوان",
     description: "الوصف العام",
@@ -46,6 +47,7 @@ const successStoriesUiText = {
 
     arabic: "Arabic",
     english: "English",
+    chinese: "Chinese",
 
     title: "Title",
     description: "Main Description",
@@ -90,6 +92,11 @@ const defaultSuccessStoriesData = {
     items: [{ ...defaultItem }],
   },
   en: {
+    title: "",
+    description: "",
+    items: [{ ...defaultItem }],
+  },
+  zh: {
     title: "",
     description: "",
     items: [{ ...defaultItem }],
@@ -266,7 +273,7 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
   const [error, setError] = useState("");
 
   const t = successStoriesUiText[lang] || successStoriesUiText.ar;
-  const currentData = formData[editorLang];
+  const currentData = formData[editorLang] || defaultSuccessStoriesData.ar;
 
   const imagePreviews = useMemo(() => {
     return currentData.items.map((item) => {
@@ -304,6 +311,7 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
         setFormData({
           ar: normalizeLanguageData(data.ar),
           en: normalizeLanguageData(data.en),
+          zh: normalizeLanguageData(data.zh),
         });
       } else {
         await setDoc(docRef, {
@@ -382,7 +390,9 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
 
   const handleRemoveItem = (index) => {
     setFormData((prev) => {
-      const items = prev[editorLang].items.filter((_, itemIndex) => itemIndex !== index);
+      const items = prev[editorLang].items.filter(
+        (_, itemIndex) => itemIndex !== index
+      );
 
       return {
         ...prev,
@@ -427,6 +437,7 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
 
       const arItems = await prepareItemsForSave(formData.ar.items);
       const enItems = await prepareItemsForSave(formData.en.items);
+      const zhItems = await prepareItemsForSave(formData.zh.items);
 
       const payload = {
         ar: {
@@ -438,6 +449,11 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
           title: formData.en.title || "",
           description: formData.en.description || "",
           items: enItems,
+        },
+        zh: {
+          title: formData.zh.title || "",
+          description: formData.zh.description || "",
+          items: zhItems,
         },
         updatedAt: serverTimestamp(),
         updatedBy: user?.email || "unknown",
@@ -457,6 +473,11 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
           title: payload.en.title,
           description: payload.en.description,
           items: normalizeItems(payload.en.items),
+        },
+        zh: {
+          title: payload.zh.title,
+          description: payload.zh.description,
+          items: normalizeItems(payload.zh.items),
         },
       });
 
@@ -560,6 +581,14 @@ export default function SuccessStoriesEditor({ lang = "ar", user }) {
               onClick={() => setEditorLang("en")}
             >
               {t.english}
+            </button>
+
+            <button
+              type="button"
+              className={editorLang === "zh" ? "active" : ""}
+              onClick={() => setEditorLang("zh")}
+            >
+              {t.chinese}
             </button>
           </div>
         </div>

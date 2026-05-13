@@ -7,6 +7,10 @@ const layoutUiText = {
     sectionTitle: "قسم الهيدر والفوتر",
     headerTitle: "تعديل الهيدر",
     footerTitle: "تعديل الفوتر",
+    currentWindow: "المحتوى الحالي",
+    chinese: "الصينية",
+    chineseHeaderTitle: "نافذة إضافة الهيدر بالصينية",
+    chineseFooterTitle: "نافذة إضافة الفوتر بالصينية",
 
     headerPath: "siteContent / header",
     footerPath: "siteContent / footer",
@@ -44,6 +48,10 @@ const layoutUiText = {
     sectionTitle: "Header & Footer Section",
     headerTitle: "Edit Header",
     footerTitle: "Edit Footer",
+    currentWindow: "Current Content",
+    chinese: "Chinese",
+    chineseHeaderTitle: "Chinese Header Content Window",
+    chineseFooterTitle: "Chinese Footer Content Window",
 
     headerPath: "siteContent / header",
     footerPath: "siteContent / footer",
@@ -78,61 +86,46 @@ const layoutUiText = {
   },
 };
 
+const emptyHeaderLanguageData = {
+  language_button: "",
+  menu_one: "",
+  menu_two: "",
+  menu_three: "",
+  menu_four: "",
+  menu_five: "",
+  menu_six: "",
+  menu_seven: "",
+  menu_eight: "",
+};
+
+const emptyFooterLanguageData = {
+  menu_one: "",
+  menu_two: "",
+  menu_three: "",
+  menu_four: "",
+  menu_five: "",
+  menu_six: "",
+  menu_seven: "",
+  menu_description: "",
+  menu_bottom_one: "",
+  menu_bottom_two: "",
+  menu_bottom_three: "",
+};
+
 const defaultHeaderData = {
-  ar: {
-    language_button: "",
-    menu_one: "",
-    menu_two: "",
-    menu_three: "",
-    menu_four: "",
-    menu_five: "",
-    menu_six: "",
-    menu_seven: "",
-    menu_eight: "",
-  },
-  en: {
-    language_button: "",
-    menu_one: "",
-    menu_two: "",
-    menu_three: "",
-    menu_four: "",
-    menu_five: "",
-    menu_six: "",
-    menu_seven: "",
-    menu_eight: "",
-  },
+  ar: { ...emptyHeaderLanguageData },
+  en: { ...emptyHeaderLanguageData },
+  zh: { ...emptyHeaderLanguageData },
 };
 
 const defaultFooterData = {
-  ar: {
-    menu_one: "",
-    menu_two: "",
-    menu_three: "",
-    menu_four: "",
-    menu_five: "",
-    menu_six: "",
-    menu_seven: "",
-    menu_description: "",
-    menu_bottom_one: "",
-    menu_bottom_two: "",
-    menu_bottom_three: "",
-  },
-  en: {
-    menu_one: "",
-    menu_two: "",
-    menu_three: "",
-    menu_four: "",
-    menu_five: "",
-    menu_six: "",
-    menu_seven: "",
-    menu_description: "",
-    menu_bottom_one: "",
-    menu_bottom_two: "",
-    menu_bottom_three: "",
-  },
+  ar: { ...emptyFooterLanguageData },
+  en: { ...emptyFooterLanguageData },
+  zh: { ...emptyFooterLanguageData },
 };
 
 export default function LayoutSectionEditor({ lang = "ar", user }) {
+  const [layoutWindow, setLayoutWindow] = useState("default");
   const [headerData, setHeaderData] = useState(defaultHeaderData);
   const [footerData, setFooterData] = useState(defaultFooterData);
 
@@ -148,8 +141,10 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
   const [footerError, setFooterError] = useState("");
 
   const t = layoutUiText[lang];
-  const currentHeader = headerData[lang];
-  const currentFooter = footerData[lang];
+  const currentHeader = headerData[lang] || emptyHeaderLanguageData;
+  const currentFooter = footerData[lang] || emptyFooterLanguageData;
+  const chineseHeader = headerData.zh || emptyHeaderLanguageData;
+  const chineseFooter = footerData.zh || emptyFooterLanguageData;
 
   useEffect(() => {
     fetchAllData();
@@ -178,6 +173,10 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
             ...defaultHeaderData.en,
             ...(data.en || {}),
           },
+          zh: {
+            ...defaultHeaderData.zh,
+            ...(data.zh || {}),
+          },
         });
       } else {
         await setDoc(headerRef, defaultHeaderData);
@@ -195,6 +194,10 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
             ...defaultFooterData.en,
             ...(data.en || {}),
           },
+          zh: {
+            ...defaultFooterData.zh,
+            ...(data.zh || {}),
+          },
         });
       } else {
         await setDoc(footerRef, defaultFooterData);
@@ -209,21 +212,21 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
     }
   };
 
-  const handleHeaderChange = (field, value) => {
+  const handleHeaderChange = (field, value, targetLang = lang) => {
     setHeaderData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyHeaderLanguageData),
         [field]: value,
       },
     }));
   };
 
-  const handleFooterChange = (field, value) => {
+  const handleFooterChange = (field, value, targetLang = lang) => {
     setFooterData((prev) => ({
       ...prev,
-      [lang]: {
-        ...prev[lang],
+      [targetLang]: {
+        ...(prev[targetLang] || emptyFooterLanguageData),
         [field]: value,
       },
     }));
@@ -240,7 +243,9 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
       await setDoc(
         docRef,
         {
-          ...headerData,
+          ar: headerData.ar || defaultHeaderData.ar,
+          en: headerData.en || defaultHeaderData.en,
+          zh: headerData.zh || defaultHeaderData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -271,7 +276,9 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
       await setDoc(
         docRef,
         {
-          ...footerData,
+          ar: footerData.ar || defaultFooterData.ar,
+          en: footerData.en || defaultFooterData.en,
+          zh: footerData.zh || defaultFooterData.zh,
           updatedAt: serverTimestamp(),
           updatedBy: user?.email || "unknown",
         },
@@ -290,6 +297,50 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
       }, 3000);
     }
   };
+
+  const renderHeaderFields = (data, targetLang = lang, suffix = "") => (
+    <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+      {Object.keys(emptyHeaderLanguageData).map((field) => (
+        <div
+          key={field}
+          className={field === "menu_eight" ? "field-box field-box--full" : "field-box"}
+        >
+          <label>{field}{suffix}</label>
+          <input
+            type="text"
+            value={data[field] || ""}
+            onChange={(e) => handleHeaderChange(field, e.target.value, targetLang)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderFooterFields = (data, targetLang = lang, suffix = "") => (
+    <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+      {Object.keys(emptyFooterLanguageData).map((field) => (
+        <div
+          key={field}
+          className={field === "menu_description" ? "field-box field-box--full" : "field-box"}
+        >
+          <label>{field}{suffix}</label>
+          {field === "menu_description" ? (
+            <textarea
+              rows={4}
+              value={data[field] || ""}
+              onChange={(e) => handleFooterChange(field, e.target.value, targetLang)}
+            />
+          ) : (
+            <input
+              type="text"
+              value={data[field] || ""}
+              onChange={(e) => handleFooterChange(field, e.target.value, targetLang)}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -316,6 +367,26 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
           <span className="editor-badge">{t.sectionTitle}</span>
           <h1>{t.sectionTitle}</h1>
         </div>
+
+        <div className="editor-header__actions">
+          <div className="language-switch">
+            <button
+              type="button"
+              className={layoutWindow === "default" ? "active" : ""}
+              onClick={() => setLayoutWindow("default")}
+            >
+              {lang === "ar" ? "العربي / الإنجليزي" : "AR / EN"}
+            </button>
+
+            <button
+              type="button"
+              className={layoutWindow === "chinese" ? "active" : ""}
+              onClick={() => setLayoutWindow("chinese")}
+            >
+              {t.chinese}
+            </button>
+          </div>
+        </div>
       </div>
 
       {(headerMessage || headerError) && (
@@ -333,109 +404,55 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
         </div>
       )}
 
-      <div className="content-card glass-card" style={{ marginBottom: "24px" }}>
-        <div className="content-card__header">
-          <h2>{t.headerTitle}</h2>
-          <p>
-            {t.firestoreInfo}: <strong>{t.headerPath}</strong>
-          </p>
-        </div>
-
-        <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
-          <div className="field-box">
-            <label>{t.languageButton}</label>
-            <input
-              type="text"
-              value={currentHeader.language_button || ""}
-              onChange={(e) =>
-                handleHeaderChange("language_button", e.target.value)
-              }
-            />
+      {layoutWindow === "default" && (
+        <div className="content-card glass-card" style={{ marginBottom: "24px" }}>
+          <div className="content-card__header">
+            <div>
+              <h2>{t.headerTitle}</h2>
+              <p>
+                {t.firestoreInfo}: <strong>{t.headerPath}</strong>
+              </p>
+            </div>
           </div>
 
-          <div className="field-box">
-            <label>{t.menuOne}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_one || ""}
-              onChange={(e) => handleHeaderChange("menu_one", e.target.value)}
-            />
-          </div>
+          {renderHeaderFields(currentHeader)}
 
-          <div className="field-box">
-            <label>{t.menuTwo}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_two || ""}
-              onChange={(e) => handleHeaderChange("menu_two", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuThree}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_three || ""}
-              onChange={(e) => handleHeaderChange("menu_three", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuFour}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_four || ""}
-              onChange={(e) => handleHeaderChange("menu_four", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuFive}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_five || ""}
-              onChange={(e) => handleHeaderChange("menu_five", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuSix}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_six || ""}
-              onChange={(e) => handleHeaderChange("menu_six", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuSeven}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_seven || ""}
-              onChange={(e) => handleHeaderChange("menu_seven", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box field-box--full">
-            <label>{t.menuEight}</label>
-            <input
-              type="text"
-              value={currentHeader.menu_eight || ""}
-              onChange={(e) => handleHeaderChange("menu_eight", e.target.value)}
-            />
+          <div style={{ marginTop: "20px" }}>
+            <button
+              className="admin-btn admin-btn--primary"
+              onClick={handleSaveHeader}
+              disabled={savingHeader}
+            >
+              {savingHeader ? t.saving : t.saveHeader}
+            </button>
           </div>
         </div>
+      )}
 
-        <div style={{ marginTop: "20px" }}>
-          <button
-            className="admin-btn admin-btn--primary"
-            onClick={handleSaveHeader}
-            disabled={savingHeader}
-          >
-            {savingHeader ? t.saving : t.saveHeader}
-          </button>
+      {layoutWindow === "chinese" && (
+        <div className="content-card glass-card" style={{ marginBottom: "24px" }}>
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseHeaderTitle}</h2>
+              <p>
+                {t.firestoreInfo}: <strong>{t.headerPath}</strong>
+              </p>
+            </div>
+          </div>
+
+          {renderHeaderFields(chineseHeader, "zh", " / Chinese")}
+
+          <div style={{ marginTop: "20px" }}>
+            <button
+              className="admin-btn admin-btn--primary"
+              onClick={handleSaveHeader}
+              disabled={savingHeader}
+            >
+              {savingHeader ? t.saving : t.saveHeader}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {(footerMessage || footerError) && (
         <div
@@ -452,133 +469,55 @@ export default function LayoutSectionEditor({ lang = "ar", user }) {
         </div>
       )}
 
-      <div className="content-card glass-card">
-        <div className="content-card__header">
-          <h2>{t.footerTitle}</h2>
-          <p>
-            {t.firestoreInfo}: <strong>{t.footerPath}</strong>
-          </p>
-        </div>
-
-        <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
-          <div className="field-box">
-            <label>{t.menuOne}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_one || ""}
-              onChange={(e) => handleFooterChange("menu_one", e.target.value)}
-            />
+      {layoutWindow === "default" && (
+        <div className="content-card glass-card">
+          <div className="content-card__header">
+            <div>
+              <h2>{t.footerTitle}</h2>
+              <p>
+                {t.firestoreInfo}: <strong>{t.footerPath}</strong>
+              </p>
+            </div>
           </div>
 
-          <div className="field-box">
-            <label>{t.menuTwo}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_two || ""}
-              onChange={(e) => handleFooterChange("menu_two", e.target.value)}
-            />
-          </div>
+          {renderFooterFields(currentFooter)}
 
-          <div className="field-box">
-            <label>{t.menuThree}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_three || ""}
-              onChange={(e) => handleFooterChange("menu_three", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuFour}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_four || ""}
-              onChange={(e) => handleFooterChange("menu_four", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuFive}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_five || ""}
-              onChange={(e) => handleFooterChange("menu_five", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuSix}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_six || ""}
-              onChange={(e) => handleFooterChange("menu_six", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.menuSeven}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_seven || ""}
-              onChange={(e) => handleFooterChange("menu_seven", e.target.value)}
-            />
-          </div>
-
-          <div className="field-box field-box--full">
-            <label>{t.footerDescription}</label>
-            <textarea
-              rows={4}
-              value={currentFooter.menu_description || ""}
-              onChange={(e) =>
-                handleFooterChange("menu_description", e.target.value)
-              }
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.footerBottomOne}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_bottom_one || ""}
-              onChange={(e) =>
-                handleFooterChange("menu_bottom_one", e.target.value)
-              }
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.footerBottomTwo}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_bottom_two || ""}
-              onChange={(e) =>
-                handleFooterChange("menu_bottom_two", e.target.value)
-              }
-            />
-          </div>
-
-          <div className="field-box">
-            <label>{t.footerBottomThree}</label>
-            <input
-              type="text"
-              value={currentFooter.menu_bottom_three || ""}
-              onChange={(e) =>
-                handleFooterChange("menu_bottom_three", e.target.value)
-              }
-            />
+          <div style={{ marginTop: "20px" }}>
+            <button
+              className="admin-btn admin-btn--primary"
+              onClick={handleSaveFooter}
+              disabled={savingFooter}
+            >
+              {savingFooter ? t.saving : t.saveFooter}
+            </button>
           </div>
         </div>
+      )}
 
-        <div style={{ marginTop: "20px" }}>
-          <button
-            className="admin-btn admin-btn--primary"
-            onClick={handleSaveFooter}
-            disabled={savingFooter}
-          >
-            {savingFooter ? t.saving : t.saveFooter}
-          </button>
+      {layoutWindow === "chinese" && (
+        <div className="content-card glass-card">
+          <div className="content-card__header">
+            <div>
+              <h2>{t.chineseFooterTitle}</h2>
+              <p>
+                {t.firestoreInfo}: <strong>{t.footerPath}</strong>
+              </p>
+            </div>
+          </div>
+
+          {renderFooterFields(chineseFooter, "zh", " / Chinese")}
+
+          <div style={{ marginTop: "20px" }}>
+            <button
+              className="admin-btn admin-btn--primary"
+              onClick={handleSaveFooter}
+              disabled={savingFooter}
+            >
+              {savingFooter ? t.saving : t.saveFooter}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
