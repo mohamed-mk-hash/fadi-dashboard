@@ -16,7 +16,7 @@ import ContactSectionEditor from "../../components/ContactSectionEditor/ContactS
 import DisciplineSectionEditor from "../../components/DisciplineSectionEditor/DisciplineSectionEditor";
 import FaqSectionEditor from "../../components/FaqSectionEditor/FaqSectionEditor";
 import LatestWritingsEditor from "../../components/LatestWritingsEditor/LatestWritingsEditor";
-import MomentsMilestonesEditor from "../../components/MomentsMilestonesEditor/MomentsMilestonesEditor";
+import NewsEventsMeetingsEditor from "../../components/IndustrialBrandsEditor/IndustrialBrandsEditor";import MomentsMilestonesEditor from "../../components/MomentsMilestonesEditor/MomentsMilestonesEditor";
 import StorySectionEditor from "../../components/StorySectionEditor/StorySectionEditor";
 import SuccessStoriesEditor from "../../components/SuccessStoriesEditor/SuccessStoriesEditor";
 import LayoutSectionEditor from "../../components/LayoutSectionEditor/LayoutSectionEditor";
@@ -68,6 +68,7 @@ const uiText = {
     disciplineSection: "قسم النساج",
     faqSection: "قسم الأسئلة الشائعة",
     latestWritingsSection: "قسم آخر الكتابات",
+    newsEventsMeetingsSection: "قسم الأخبار والفعاليات والاجتماعات",
     momentsSection: "قسم اللحظات والإنجازات",
     storySection: "قسم القصة",
     successStoriesSection: "قسم قصص النجاح",
@@ -119,6 +120,7 @@ const uiText = {
     disciplineSection: "Discipline Section",
     faqSection: "FAQ Section",
     latestWritingsSection: "Latest Writings Section",
+    newsEventsMeetingsSection: "News, Events & Meetings Section",
     momentsSection: "Moments & Milestones Section",
     storySection: "Story Section",
     successStoriesSection: "Success Stories Section",
@@ -304,7 +306,10 @@ export default function AdminDashboard() {
   if (loginLoading) {
     return (
       <div className={`admin-dashboard ${lang === "ar" ? "rtl" : "ltr"}`}>
-        <main className="main-content" style={{ width: "100%", maxWidth: "100%", flex: 1 }}>
+        <main
+          className="main-content"
+          style={{ width: "100%", maxWidth: "100%", flex: 1 }}
+        >
           <div className="glass-card" style={{ padding: "30px", width: "100%" }}>
             <h2>{t.loading}</h2>
           </div>
@@ -357,7 +362,10 @@ export default function AdminDashboard() {
             )}
 
             <form onSubmit={handleLogin}>
-              <div className="field-box field-box--full" style={{ marginBottom: "16px" }}>
+              <div
+                className="field-box field-box--full"
+                style={{ marginBottom: "16px" }}
+              >
                 <label>{t.email}</label>
                 <input
                   type="email"
@@ -367,7 +375,10 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="field-box field-box--full" style={{ marginBottom: "20px" }}>
+              <div
+                className="field-box field-box--full"
+                style={{ marginBottom: "20px" }}
+              >
                 <label>{t.password}</label>
                 <input
                   type="password"
@@ -424,7 +435,11 @@ export default function AdminDashboard() {
           <div className="brand-card">
             <div className="brand-text">
               <h2>Fadi Ahmed</h2>
-              <p>{lang === "ar" ? "إدارة محتوى الموقع" : "Website Content Manager"}</p>
+              <p>
+                {lang === "ar"
+                  ? "إدارة محتوى الموقع"
+                  : "Website Content Manager"}
+              </p>
             </div>
             <div className="brand-logo">FA</div>
           </div>
@@ -479,11 +494,27 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              className={`sidebar-item ${activeSection === "latestWritings" ? "active" : ""}`}
+              className={`sidebar-item ${
+                activeSection === "latestWritings" ? "active" : ""
+              }`}
               onClick={() => setActiveSection("latestWritings")}
             >
               <span className="sidebar-item__dot" />
-              <span className="sidebar-item__label">{t.latestWritingsSection}</span>
+              <span className="sidebar-item__label">
+                {t.latestWritingsSection}
+              </span>
+            </button>
+
+            <button
+              className={`sidebar-item ${
+                activeSection === "newsEventsMeetings" ? "active" : ""
+              }`}
+              onClick={() => setActiveSection("newsEventsMeetings")}
+            >
+              <span className="sidebar-item__dot" />
+              <span className="sidebar-item__label">
+                {t.newsEventsMeetingsSection}
+              </span>
             </button>
 
             <button
@@ -503,11 +534,15 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              className={`sidebar-item ${activeSection === "successStories" ? "active" : ""}`}
+              className={`sidebar-item ${
+                activeSection === "successStories" ? "active" : ""
+              }`}
               onClick={() => setActiveSection("successStories")}
             >
               <span className="sidebar-item__dot" />
-              <span className="sidebar-item__label">{t.successStoriesSection}</span>
+              <span className="sidebar-item__label">
+                {t.successStoriesSection}
+              </span>
             </button>
 
             <button
@@ -527,7 +562,9 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              className={`sidebar-item ${activeSection === "experience" ? "active" : ""}`}
+              className={`sidebar-item ${
+                activeSection === "experience" ? "active" : ""
+              }`}
               onClick={() => setActiveSection("experience")}
             >
               <span className="sidebar-item__dot" />
@@ -595,7 +632,10 @@ export default function AdminDashboard() {
                 }}
               >
                 {loading ? (
-                  <div className="glass-card" style={{ padding: "30px", width: "100%" }}>
+                  <div
+                    className="glass-card"
+                    style={{ padding: "30px", width: "100%" }}
+                  >
                     <h2>{t.loading}</h2>
                   </div>
                 ) : (
@@ -606,7 +646,9 @@ export default function AdminDashboard() {
                         style={{
                           padding: "16px 20px",
                           marginBottom: "20px",
-                          border: error ? "1px solid #ff4d4f" : "1px solid #22c55e",
+                          border: error
+                            ? "1px solid #ff4d4f"
+                            : "1px solid #22c55e",
                           width: "100%",
                           maxWidth: "100%",
                         }}
@@ -615,7 +657,10 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    <div className="editor-header glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+                    <div
+                      className="editor-header glass-card"
+                      style={{ width: "100%", maxWidth: "100%" }}
+                    >
                       <div className="editor-header__text">
                         <span className="editor-badge">{t.formTitle}</span>
                         <h1>{t.heroSection}</h1>
@@ -662,18 +707,26 @@ export default function AdminDashboard() {
                     </div>
 
                     {heroWindow === "default" && (
-                      <div className="content-card glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+                      <div
+                        className="content-card glass-card"
+                        style={{ width: "100%", maxWidth: "100%" }}
+                      >
                         <div className="content-card__header">
                           <h2>{t.defaultHeroWindow}</h2>
                         </div>
 
-                        <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                        <div
+                          className="fields-grid"
+                          style={{ width: "100%", maxWidth: "100%" }}
+                        >
                           <div className="field-box">
                             <label>{t.badge}</label>
                             <input
                               type="text"
                               value={currentData.badge}
-                              onChange={(e) => handleChange("badge", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("badge", e.target.value)
+                              }
                             />
                           </div>
 
@@ -682,7 +735,9 @@ export default function AdminDashboard() {
                             <input
                               type="text"
                               value={currentData.title}
-                              onChange={(e) => handleChange("title", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("title", e.target.value)
+                              }
                             />
                           </div>
 
@@ -691,7 +746,9 @@ export default function AdminDashboard() {
                             <textarea
                               rows={5}
                               value={currentData.description}
-                              onChange={(e) => handleChange("description", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("description", e.target.value)
+                              }
                             />
                           </div>
 
@@ -701,7 +758,10 @@ export default function AdminDashboard() {
                               type="text"
                               value={currentData.primaryButtonText}
                               onChange={(e) =>
-                                handleChange("primaryButtonText", e.target.value)
+                                handleChange(
+                                  "primaryButtonText",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
@@ -712,7 +772,10 @@ export default function AdminDashboard() {
                               type="text"
                               value={currentData.primaryButtonLink}
                               onChange={(e) =>
-                                handleChange("primaryButtonLink", e.target.value)
+                                handleChange(
+                                  "primaryButtonLink",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
@@ -723,7 +786,10 @@ export default function AdminDashboard() {
                               type="text"
                               value={currentData.secondaryButtonText}
                               onChange={(e) =>
-                                handleChange("secondaryButtonText", e.target.value)
+                                handleChange(
+                                  "secondaryButtonText",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
@@ -734,7 +800,10 @@ export default function AdminDashboard() {
                               type="text"
                               value={currentData.secondaryButtonLink}
                               onChange={(e) =>
-                                handleChange("secondaryButtonLink", e.target.value)
+                                handleChange(
+                                  "secondaryButtonLink",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
@@ -743,15 +812,23 @@ export default function AdminDashboard() {
                     )}
 
                     {heroWindow === "chinese" && (
-                      <div className="content-card glass-card" style={{ width: "100%", maxWidth: "100%" }}>
+                      <div
+                        className="content-card glass-card"
+                        style={{ width: "100%", maxWidth: "100%" }}
+                      >
                         <div className="content-card__header">
                           <div>
                             <h2>{t.chineseWindowTitle}</h2>
-                            <p style={{ marginTop: "8px" }}>{t.chineseWindowDesc}</p>
+                            <p style={{ marginTop: "8px" }}>
+                              {t.chineseWindowDesc}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="fields-grid" style={{ width: "100%", maxWidth: "100%" }}>
+                        <div
+                          className="fields-grid"
+                          style={{ width: "100%", maxWidth: "100%" }}
+                        >
                           <div className="field-box">
                             <label>{t.badge} / Chinese</label>
                             <input
@@ -780,7 +857,11 @@ export default function AdminDashboard() {
                               rows={5}
                               value={chineseData.description}
                               onChange={(e) =>
-                                handleChange("description", e.target.value, "zh")
+                                handleChange(
+                                  "description",
+                                  e.target.value,
+                                  "zh"
+                                )
                               }
                             />
                           </div>
@@ -791,7 +872,11 @@ export default function AdminDashboard() {
                               type="text"
                               value={chineseData.primaryButtonText}
                               onChange={(e) =>
-                                handleChange("primaryButtonText", e.target.value, "zh")
+                                handleChange(
+                                  "primaryButtonText",
+                                  e.target.value,
+                                  "zh"
+                                )
                               }
                             />
                           </div>
@@ -802,7 +887,11 @@ export default function AdminDashboard() {
                               type="text"
                               value={chineseData.primaryButtonLink}
                               onChange={(e) =>
-                                handleChange("primaryButtonLink", e.target.value, "zh")
+                                handleChange(
+                                  "primaryButtonLink",
+                                  e.target.value,
+                                  "zh"
+                                )
                               }
                             />
                           </div>
@@ -813,7 +902,11 @@ export default function AdminDashboard() {
                               type="text"
                               value={chineseData.secondaryButtonText}
                               onChange={(e) =>
-                                handleChange("secondaryButtonText", e.target.value, "zh")
+                                handleChange(
+                                  "secondaryButtonText",
+                                  e.target.value,
+                                  "zh"
+                                )
                               }
                             />
                           </div>
@@ -824,7 +917,11 @@ export default function AdminDashboard() {
                               type="text"
                               value={chineseData.secondaryButtonLink}
                               onChange={(e) =>
-                                handleChange("secondaryButtonLink", e.target.value, "zh")
+                                handleChange(
+                                  "secondaryButtonLink",
+                                  e.target.value,
+                                  "zh"
+                                )
                               }
                             />
                           </div>
@@ -858,6 +955,10 @@ export default function AdminDashboard() {
 
             {activeSection === "latestWritings" && (
               <LatestWritingsEditor lang={lang} user={user} />
+            )}
+
+            {activeSection === "newsEventsMeetings" && (
+              <NewsEventsMeetingsEditor lang={lang} user={user} />
             )}
 
             {activeSection === "moments" && (
